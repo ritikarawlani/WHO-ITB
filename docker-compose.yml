@@ -27,7 +27,7 @@ services:
       - ./initconfig/data/:/gitb-repository/data/in/:rw
     environment:
       # This is the key to decrypt the initialisation data archive (see above).
-      - DATA_ARCHIVE_KEY=itb1
+      - DATA_ARCHIVE_KEY=WHO_ITB1
       # Flag to enable the Test Bed's REST API. This can be very useful for efficient test case development.
       - AUTOMATION_API_ENABLED=true
       # Activate the generic GITB theme.
@@ -39,9 +39,9 @@ services:
         condition: service_healthy
       gitb-srv:
         condition: service_started
-  hajj-helper-services:
+  who-helper-services:
     build:
-      context: ./hajj-helper
+      context: ./who-helper
     restart: unless-stopped
     ports:
       - "10005:8181"
