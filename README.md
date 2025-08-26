@@ -49,4 +49,4 @@ Users are set up with temporary passwords, you need to change it immediately aft
 # Links and further reading
 This testing composition uses the Interoperability Test Bed as the main tool of orchestrating and reporting test-cases. See further resources on it below.
 ## Introduction to the ITB
-
+https://interoperable-europe.ec.europa.eu/collection/interoperability-test-bed-repository/solution/interoperability-test-bed
