@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testcase id="tc-signature-verification" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>Digital Signature Verification</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>
+            Test case to validate cryptographic signature verification of CWT.
+            Tests public key retrieval, expiration validation, and signature verification.
+        </gitb:description>
+    </metadata>
+    
+    <actors>
+        <gitb:actor id="receiver" role="SUT"/>
+        <gitb:actor id="validator"/>
+    </actors>
+    
+    <steps stopOnError="true">
+        <group title="Setup" desc="Prepare data for signature verification">
+            <assign to="validCWT">"extracted_cwt_with_valid_signature"</assign>
+        </group>
+        
+        <group title="Signature Data Extraction" desc="Extract signature components">
+            <interact id="provideCWTForSigVerification" desc="Provide CWT for signature verification" inputTitle="CWT Token">
+                <instruct desc="Provide CWT token for signature verification">$validCWT</instruct>
+                <request desc="CWT Token" name="cwtToken" inputType="TEXT"/>
+            </interact>
+            
+            <!-- Extract signature components -->
+            <call path="scriptlets/extractSignatureComponents.xml">
+                <input name="cwtToken">$provideCWTForSigVerification{cwtToken}</input>
+                <output name="keyIdentifier"/>
+                <output name="issuerCode"/>
+                <output name="signature"/>
+                <output name="signedPayload"/>
+            </call>
+            
+            <!-- Retrieve corresponding public key -->
+            <call path="scriptlets/retrievePublicKey.xml">
+                <input name="countryCode">$extractSignatureComponents{issuerCode}</input>
+                <input name="keyIdentifier">$extractSignatureComponents{keyIdentifier}</input>
+                <output name="publicKey"/>
+                <output name="retrievalResult"/>
+            </call>
+        </group>
+        
+        <group title="Expiration Validation" desc="Validate token has not expired">
+            <!-- Extract timestamps from CWT payload -->
+            <call path="scriptlets/extractTimestamps.xml">
+                <input name="cwtToken">$provideCWTForSigVerification{cwtToken}</input>
+                <output name="issuedAt"/>
+                <output name="expirationTime"/>
+                <output name="currentTime"/>
+            </call>
+            
+            <!-- Verify current time is between issued at and expiration -->
+            <call path="scriptlets/validateTokenExpiration.xml">
+                <input name="currentTime">$extractTimestamps{currentTime}</input>
+                <input name="issuedAt">$extractTimestamps{issuedAt}</input>
+                <input name="expirationTime">$extractTimestamps{expirationTime}</input>
+                <output name="expirationResult"/>
+                <output name="timeValidation"/>
+            </call>
+            
+            <verify id="verifyNotExpired" desc="Verify token has not expired"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$validateTokenExpiration{expirationResult}</input>
+                <input name="expected">"valid"</input>
+            </verify>
+        </group>
+        
+        <group title="Cryptographic Verification" desc="Perform signature verification">
+            <!-- Verify cryptographic signature -->
+            <call path="scriptlets/verifyCryptographicSignature.xml">
+                <input name="publicKey">$retrievePublicKey{publicKey}</input>
+                <input name="signature">$extractSignatureComponents{signature}</input>
+                <input name="signedPayload">$extractSignatureComponents{signedPayload}</input>
+                <output name="verificationResult"/>
+                <output name="signatureValid"/>
+            </call>
+            
+            <verify id="verifySignatureValid" desc="Verify signature is cryptographically valid"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$verifyCryptographicSignature{verificationResult}</input>
+                <input name="expected">"valid"</input>
+            </verify>
+            
+            <!-- Additional signature metadata validation -->
+            <call path="scriptlets/validateSignatureMetadata.xml">
+                <input name="signatureData">$verifyCryptographicSignature{signatureValid}</input>
+                <output name="algorithmUsed"/>
+                <output name="keyStrength"/>
+            </call>
+        </group>
+        
+        <group title="Trust Chain Validation" desc="Validate certificate trust chain">
+            <!-- Verify trust chain from public key to root CA -->
+            <call path="scriptlets/validateTrustChain.xml">
+                <input name="publicKey">$retrievePublicKey{publicKey}</input>
+                <input name="issuerCode">$extractSignatureComponents{issuerCode}</input>
+                <output name="trustChainResult"/>
+                <output name="chainValidation"/>
+            </call>
+            
+            <verify id="verifyTrustChain" desc="Verify trust chain is valid"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$validateTrustChain{trustChainResult}</input>
+                <input name="expected">"valid_chain"</input>
+            </verify>
+        </group>
+    </steps>
+    
+    <o>
+        <success>
+            <default>"Digital signature successfully verified with valid trust chain"</default>
+        </success>
+        <failure>
+            <case>
+                <cond>$STEP_STATUS{verifyNotExpired} = 'ERROR'</cond>
+                <message>"Token has expired or timestamp validation failed"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifySignatureValid} = 'ERROR'</cond>
+                <message>"Cryptographic signature verification failed"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyTrustChain} = 'ERROR'</cond>
+                <message>"Trust chain validation failed"</message>
+            </case>
+            <default>"Digital signature verification failed"</default>
+        </failure>
+    </o>
+</testcase>

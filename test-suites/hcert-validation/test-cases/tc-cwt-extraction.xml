@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testcase id="tc-cwt-extraction" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>CWT Token Extraction</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>
+            Test case to validate extraction of CBOR Web Token (CWT) from valid HCERT QR code.
+            Tests Base45 decoding, ZLIB decompression, and CWT structure validation.
+        </gitb:description>
+    </metadata>
+    
+    <actors>
+        <gitb:actor id="receiver" role="SUT"/>
+        <gitb:actor id="validator"/>
+    </actors>
+    
+    <steps stopOnError="true">
+        <group title="Setup" desc="Prepare valid HCERT for CWT extraction">
+            <assign to="validHCERT">"HC1:NCFOXN%TSMAHN-H+XO5XF7:UY%FJ.FK6ZK7:EDOLOPCO8F6%E5.FK:*P QDHQF67463W5KF6946846G41NKF"</assign>
+        </group>
+        
+        <group title="QR Code Decoding" desc="Decode QR code and extract payload">
+            <interact id="provideQRCode" desc="Provide HCERT QR code" inputTitle="HCERT QR Code">
+                <instruct desc="Process the HCERT QR code">$validHCERT</instruct>
+                <request desc="QR Code Data" name="qrData" inputType="TEXT"/>
+            </interact>
+            
+            <!-- Remove HC1: prefix -->
+            <call path="scriptlets/removeHC1Prefix.xml">
+                <input name="qrData">$provideQRCode{qrData}</input>
+                <output name="rawPayload"/>
+            </call>
+            
+            <!-- Decode Base45 payload -->
+            <call path="scriptlets/decodeBase45.xml">
+                <input name="base45Data">$removeHC1Prefix{rawPayload}</input>
+                <output name="binaryPayload"/>
+                <output name="decodingResult"/>
+            </call>
+        </group>
+        
+        <group title="ZLIB Decompression" desc="Decompress payload">
+            <call path="scriptlets/zlibDecompress.xml">
+                <input name="compressedData">$decodeBase45{binaryPayload}</input>
+                <output name="decompressedData"/>
+                <output name="decompressionResult"/>
+            </call>
+            
+            <!-- Validate decompressed data is valid CBOR -->
+            <verify id="verifyCBORFormat" desc="Verify CBOR format"
+                    handler="$DOMAIN{processingServiceAddress}">
+                <input name="operation">"validateCBOR"</input>
+                <input name="cborData">$zlibDecompress{decompressedData}</input>
+            </verify>
+        </group>
+        
+        <group title="CWT Validation" desc="Validate CWT structure">
+            <call path="scriptlets/validateCWT.xml">
+                <input name="cwtData">$zlibDecompress{decompressedData}</input>
+                <output name="cwtValidation"/>
+                <output name="headerClaims"/>
+                <output name="payloadClaims"/>
+            </call>
+            
+            <verify id="verifyCWTStructure" desc="Verify CWT structure against FHIR StructureDefinition"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="structureDefinition">"http://smart.who.int/trust/StructureDefinition/CWT"</input>
+                <input name="cwtData">$validateCWT{cwtData}</input>
+            </verify>
+        </group>
+    </steps>
+    
+    <o>
+        <success>
+            <default>"CWT successfully extracted and validated from HCERT QR code"</default>
+        </success>
+        <failure>
+            <case>
+                <cond>$STEP_STATUS{verifyCBORFormat} = 'ERROR'</cond>
+                <message>"Decompressed payload is not valid CBOR format"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyCWTStructure} = 'ERROR'</cond>
+                <message>"CWT structure does not conform to FHIR StructureDefinition"</message>
+            </case>
+            <default>"CWT extraction or validation failed"</default>
+        </failure>
+    </o>
+</testcase>

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testcase id="tc-hcert-payload-extraction" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>HCERT Payload Extraction</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>
+            Test case to extract and validate HCERT payload from verified CWT.
+            Tests claim key -260 extraction and HCERT structure validation.
+        </gitb:description>
+    </metadata>
+    
+    <actors>
+        <gitb:actor id="receiver" role="SUT"/>
+        <gitb:actor id="validator"/>
+    </actors>
+    
+    <steps stopOnError="true">
+        <group title="Setup" desc="Prepare verified CWT for payload extraction">
+            <assign to="verifiedCWT">"cwt_with_verified_signature"</assign>
+            <assign to="hcertClaimKey">"-260"</assign>
+        </group>
+        
+        <group title="HCERT Payload Extraction" desc="Extract HCERT from CWT claim -260">
+            <interact id="provideVerifiedCWT" desc="Provide verified CWT" inputTitle="Verified CWT">
+                <instruct desc="Provide CWT token with verified signature for payload extraction">$verifiedCWT</instruct>
+                <request desc="Verified CWT Token" name="cwtToken" inputType="TEXT"/>
+            </interact>
+            
+            <!-- Extract HCERT payload using claim key -260 -->
+            <call path="scriptlets/extractHCERTPayload.xml">
+                <input name="cwtToken">$provideVerifiedCWT{cwtToken}</input>
+                <input name="claimKey">$hcertClaimKey</input>
+                <output name="hcertPayload"/>
+                <output name="extractionResult"/>
+                <output name="payloadType"/>
+            </call>
+            
+            <verify id="verifyPayloadExtracted" desc="Verify HCERT payload was successfully extracted"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$extractHCERTPayload{extractionResult}</input>
+                <input name="expected">"success"</input>
+            </verify>
+        </group>
+        
+        <group title="HCERT Structure Validation" desc="Validate extracted HCERT structure">
+            <!-- Validate HCERT structure against FHIR StructureDefinition -->
+            <call path="scriptlets/validateHCERTStructure.xml">
+                <input name="hcertPayload">$extractHCERTPayload{hcertPayload}</input>
+                <input name="structureDefinition">"http://smart.who.int/trust/StructureDefinition/HCert"</input>
+                <output name="structureValidation"/>
+                <output name="validationErrors"/>
+            </call>
+            
+            <verify id="verifyHCERTStructure" desc="Verify HCERT structure conforms to StructureDefinition"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$validateHCERTStructure{structureValidation}</input>
+                <input name="expected">"valid"</input>
+            </verify>
+        </group>
+        
+        <group title="HCERT Content Analysis" desc="Analyze HCERT content types">
+            <!-- Analyze HCERT subclaims and content -->
+            <call path="scriptlets/analyzeHCERTContent.xml">
+                <input name="hcertPayload">$extractHCERTPayload{hcertPayload}</input>
+                <output name="contentTypes"/>
+                <output name="subclaims"/>
+                <output name="certTypes"/>
+            </call>
+            
+            <!-- Validate known certificate types -->
+            <if>
+                <cond>contains($analyzeHCERTContent{certTypes}, "EU_DCC")</cond>
+                <then>
+                    <call path="scriptlets/validateEUDCC.xml">
+                        <input name="hcertData">$extractHCERTPayload{hcertPayload}</input>
+                        <output name="euDccValidation"/>
+                    </call>
+                    
+                    <verify id="verifyEUDCC" desc="Verify EU DCC format"
+                            handler="$DOMAIN{validationServiceAddress}">
+                        <input name="text">$validateEUDCC{euDccValidation}</input>
+                        <input name="expected">"valid_eu_dcc"</input>
+                    </verify>
+                </then>
+            </if>
+            
+            <if>
+                <cond>contains($analyzeHCERTContent{certTypes}, "DDCC_VS")</cond>
+                <then>
+                    <call path="scriptlets/validateDDCCVS.xml">
+                        <input name="hcertData">$extractHCERTPayload{hcertPayload}</input>
+                        <output name="ddccValidation"/>
+                    </call>
+                    
+                    <verify id="verifyDDCCVS" desc="Verify DDCC Vaccination format"
+                            handler="$DOMAIN{validationServiceAddress}">
+                        <input name="text">$validateDDCCVS{ddccValidation}</input>
+                        <input name="expected">"valid_ddcc_vs"</input>
+                    </verify>
+                </then>
+            </if>
+            
+            <if>
+                <cond>contains($analyzeHCERTContent{certTypes}, "DDCC_TR")</cond>
+                <then>
+                    <call path="scriptlets/validateDDCCTR.xml">
+                        <input name="hcertData">$extractHCERTPayload{hcertPayload}</input>
+                        <output name="ddccTrValidation"/>
+                    </call>
+                    
+                    <verify id="verifyDDCCTR" desc="Verify DDCC Test Result format"
+                            handler="$DOMAIN{validationServiceAddress}">
+                        <input name="text">$validateDDCCTR{ddccTrValidation}</input>
+                        <input name="expected">"valid_ddcc_tr"</input>
+                    </verify>
+                </then>
+            </if>
+        </group>
+        
+        <group title="Final Validation Report" desc="Generate comprehensive validation report">
+            <call path="scriptlets/generateValidationReport.xml">
+                <input name="hcertPayload">$extractHCERTPayload{hcertPayload}</input>
+                <input name="structureValidation">$validateHCERTStructure{structureValidation}</input>
+                <input name="contentTypes">$analyzeHCERTContent{contentTypes}</input>
+                <output name="finalReport"/>
+                <output name="overallResult"/>
+            </call>
+            
+            <verify id="verifyOverallValidation" desc="Verify overall HCERT validation result"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$generateValidationReport{overallResult}</input>
+                <input name="expected">"valid_hcert_complete"</input>
+            </verify>
+        </group>
+    </steps>
+    
+    <o>
+        <success>
+            <default>"HCERT payload successfully extracted and validated from CWT"</default>
+        </success>
+        <failure>
+            <case>
+                <cond>$STEP_STATUS{verifyPayloadExtracted} = 'ERROR'</cond>
+                <message>"Failed to extract HCERT payload from CWT claim -260"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyHCERTStructure} = 'ERROR'</cond>
+                <message>"HCERT structure does not conform to FHIR StructureDefinition"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyEUDCC} = 'ERROR'</cond>
+                <message>"EU DCC format validation failed"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyDDCCVS} = 'ERROR'</cond>
+                <message>"DDCC Vaccination format validation failed"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyDDCCTR} = 'ERROR'</cond>
+                <message>"DDCC Test Result format validation failed"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyOverallValidation} = 'ERROR'</cond>
+                <message>"Overall HCERT validation failed"</message>
+            </case>
+            <default>"HCERT payload extraction or validation failed"</default>
+        </failure>
+    </o>
+</testcase>

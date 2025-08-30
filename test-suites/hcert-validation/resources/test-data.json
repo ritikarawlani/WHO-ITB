@@ -1,0 +1,28 @@
+{
+  "validHCERTQRCode": "HC1:NCFOXN%TSMAHN-H+XO5XF7:UY%FJ.FK6ZK7:EDOLOPCO8F6%E5.FK:*P QDHQF67463W5KF6946846G41NKF:QN:96-JN*T1:G1-QN-HKF%6PFQ/TSCZB1KEC0JH%F3*R1YS0JZ9*47+E4F0F6L9HFQE%6I*LG0Z+QN+KN%LO%8M50FLJI%6P9GQHO%F9I1K%P1R2CL%HD-7J/C0*T05THVGK3G-HKPQ1FC",
+  "invalidQRCode": "INVALID:NCFOXN%TSMAHN-H+XO5XF7:UY%FJ.FK6ZK7:EDOLOPCO8F6%E5.FK",
+  "supportedAlgorithms": ["ES256", "PS256"],
+  "algorithmLevels": {
+    "ES256": "Primary (ECC P-256)",
+    "PS256": "Secondary (RSA PSS)"
+  },
+  "testCountryCodes": ["DE", "FR", "IT", "ES", "NL", "BE"],
+  "sampleHCERTPayload": {
+    "1": {
+      "v": [
+        {
+          "tg": "840539006",
+          "vp": "1119349007",
+          "mp": "EU/1/20/1528",
+          "ma": "ORG-100030215",
+          "dn": 2,
+          "sd": 2,
+          "dt": "2021-02-18",
+          "co": "DE",
+          "is": "Robert Koch-Institut",
+          "ci": "URN:UVCI:01DE/84503/1119349007/DXSGWLWL40SU8ZFKIYIBK39A3#S"
+        }
+      ]
+    }
+  }
+}

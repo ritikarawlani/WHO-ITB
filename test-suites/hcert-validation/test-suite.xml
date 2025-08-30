@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite id="ts-hcert-validation" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>HCERT Validation Test Suite</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>
+            Test suite for validating HCERT (Health Certificate) QR codes according to WHO GDHCN specifications.
+            Tests QR code decoding, CWT validation, signature verification, and HCERT payload extraction.
+        </gitb:description>
+    </metadata>
+    
+    <actors>
+        <gitb:actor id="receiver">
+            <gitb:name>HCERT Receiver</gitb:name>
+            <gitb:desc>The system receiving and validating HCERT QR codes</gitb:desc>
+        </gitb:actor>
+        <gitb:actor id="validator">
+            <gitb:name>GDHCN Validator</gitb:name>
+            <gitb:desc>The GDHCN validation service for HCERT processing</gitb:desc>
+        </gitb:actor>
+    </actors>
+    
+    <!-- Test Cases -->
+    <testcase id="tc-qr-valid-hcert"/>
+    <testcase id="tc-qr-invalid-hcert"/>
+    <testcase id="tc-cwt-extraction"/>
+    <testcase id="tc-cwt-validation"/>
+    <testcase id="tc-signature-algorithm-validation"/>
+    <testcase id="tc-key-identifier-validation"/>
+    <testcase id="tc-signature-verification"/>
+    <testcase id="tc-hcert-payload-extraction"/>
+</testsuite>

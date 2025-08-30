@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scriptlet id="processQRCode" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>Process QR Code</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>Scriptlet to process QR code through GDHCN validator service</gitb:description>
+    </metadata>
+    
+    <params>
+        <var name="qrContent" type="string"/>
+    </params>
+    
+    <outputs>
+        <var name="decodedPayload" type="string"/>
+        <var name="validationResult" type="string"/>
+        <var name="errorMessage" type="string"/>
+    </outputs>
+    
+    <steps>
+        <!-- Call GDHCN validator service to process QR code -->
+        <call id="callValidator" desc="Call GDHCN validator service"
+              handler="$DOMAIN{processingServiceAddress}">
+            <input name="operation">"processHCERTQRCode"</input>
+            <input name="qrCode">$qrContent</input>
+            <input name="validatorEndpoint">$DOMAIN{gdhcnValidatorEndpoint}</input>
+        </call>
+        
+        <!-- Extract results from validator response -->
+        <assign to="decodedPayload">$callValidator{decodedPayload}</assign>
+        <assign to="validationResult">$callValidator{validationResult}</assign>
+        <assign to="errorMessage">$callValidator{errorMessage}</assign>
+        
+        <!-- Log processing results -->
+        <log>
+            <message>"QR Code processing completed with result: " || $validationResult</message>
+        </log>
+    </steps>
+</scriptlet>

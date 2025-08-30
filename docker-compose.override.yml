@@ -1,0 +1,33 @@
+version: '3.9'
+
+services:
+  # GDHCN Validator Service for HCERT testing
+  gdhcn-validator:
+    image: costateixeira/gdhcn-validator:0.1.0
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Update gitb-srv to connect to GDHCN validator
+  gitb-srv:
+    environment:
+      # Add GDHCN validator endpoint for test services
+      - GDHCN_VALIDATOR_ENDPOINT=http://gdhcn-validator:8080
+      - gitb.messaging.callbackURL=http://gitb-srv:8080/itbsrv/MessagingClient
+
+  # Update WHO helper services
+  who-helper-services:
+    environment:
+      - GDHCN_VALIDATOR_ENDPOINT=http://gdhcn-validator:8080
+      - SERVER_PORT=8181
+      - SERVER_SERVLET_CONTEXT_PATH=/flint
+    depends_on:
+      gdhcn-validator:
+        condition: service_healthy

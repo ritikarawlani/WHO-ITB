@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scriptlet id="extractHCERTPayload" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>Extract HCERT Payload</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>Scriptlet to extract HCERT payload from CWT using claim key -260</gitb:description>
+    </metadata>
+    
+    <params>
+        <var name="cwtToken" type="string"/>
+        <var name="claimKey" type="string"/>
+    </params>
+    
+    <outputs>
+        <var name="hcertPayload" type="string"/>
+        <var name="extractionResult" type="string"/>
+        <var name="payloadType" type="string"/>
+    </outputs>
+    
+    <steps>
+        <!-- Extract HCERT payload using claim key -260 -->
+        <call id="extractPayload" desc="Extract HCERT payload from CWT"
+              handler="$DOMAIN{processingServiceAddress}">
+            <input name="operation">"extractHCERTPayload"</input>
+            <input name="cwtData">$cwtToken</input>
+            <input name="claimKey">$claimKey</input>
+            <input name="validatorEndpoint">$DOMAIN{gdhcnValidatorEndpoint}</input>
+        </call>
+        
+        <!-- Process extraction results -->
+        <assign to="hcertPayload">$extractPayload{hcertData}</assign>
+        <assign to="extractionResult">$extractPayload{result}</assign>
+        <assign to="payloadType">$extractPayload{payloadType}</assign>
+        
+        <!-- Validate extraction was successful -->
+        <if>
+            <cond>$extractionResult = "success"</cond>
+            <then>
+                <log>
+                    <message>"HCERT payload successfully extracted from CWT claim " || $claimKey</message>
+                </log>
+            </then>
+            <else>
+                <log>
+                    <message>"Failed to extract HCERT payload: " || $extractionResult</message>
+                </log>
+            </else>
+        </if>
+    </steps>
+</scriptlet>

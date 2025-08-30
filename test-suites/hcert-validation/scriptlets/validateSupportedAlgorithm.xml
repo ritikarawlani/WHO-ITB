@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scriptlet id="validateSupportedAlgorithm" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>Validate Supported Algorithm</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>Scriptlet to validate if algorithm is supported by GDHCN</gitb:description>
+    </metadata>
+    
+    <params>
+        <var name="algorithm" type="string"/>
+        <var name="supportedAlgorithms" type="string"/>
+    </params>
+    
+    <outputs>
+        <var name="validationResult" type="string"/>
+        <var name="algorithmLevel" type="string"/>
+    </outputs>
+    
+    <steps>
+        <!-- Check if algorithm is in supported list -->
+        <if>
+            <cond>$algorithm = "ES256"</cond>
+            <then>
+                <assign to="validationResult">"supported"</assign>
+                <assign to="algorithmLevel">"Primary (ECC P-256)"</assign>
+            </then>
+            <elseif>
+                <cond>$algorithm = "PS256"</cond>
+                <then>
+                    <assign to="validationResult">"supported"</assign>
+                    <assign to="algorithmLevel">"Secondary (RSA PSS)"</assign>
+                </then>
+            </elseif>
+            <else>
+                <assign to="validationResult">"unsupported"</assign>
+                <assign to="algorithmLevel">"unknown"</assign>
+            </else>
+        </if>
+        
+        <log>
+            <message>"Algorithm " || $algorithm || " validation: " || $validationResult || " (" || $algorithmLevel || ")"</message>
+        </log>
+    </steps>
+</scriptlet>

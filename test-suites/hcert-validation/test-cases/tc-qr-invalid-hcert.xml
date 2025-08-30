@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testcase id="tc-qr-invalid-hcert" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>Invalid HCERT QR Code Validation</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>
+            Test case to validate rejection of invalid HCERT QR codes that don't have HC1: prefix.
+            This is a negative test case.
+        </gitb:description>
+    </metadata>
+    
+    <actors>
+        <gitb:actor id="receiver" role="SUT"/>
+        <gitb:actor id="validator"/>
+    </actors>
+    
+    <steps stopOnError="false">
+        <group title="Setup" desc="Test preparation with invalid QR code">
+            <assign to="invalidQRCode">"INVALID:NCFOXN%TSMAHN-H+XO5XF7:UY%FJ.FK6ZK7:EDOLOPCO8F6%E5.FK"</assign>
+            <assign to="expectedPrefix">"HC1:"</assign>
+        </group>
+        
+        <group title="Invalid QR Code Processing" desc="Process invalid QR code">
+            <interact id="presentInvalidQR" desc="Present invalid QR code" inputTitle="Invalid QR Code Input">
+                <instruct desc="Scan the invalid QR code">$invalidQRCode</instruct>
+                <request desc="QR Code Content" name="qrContent" inputType="TEXT"/>
+            </interact>
+            
+            <!-- Validate QR code does NOT start with HC1: prefix -->
+            <call path="scriptlets/validateHCERTPrefix.xml">
+                <input name="qrContent">$presentInvalidQR{qrContent}</input>
+                <input name="expectedPrefix">$expectedPrefix</input>
+                <input name="expectFailure">"true"</input>
+            </call>
+            
+            <!-- Attempt to process invalid QR code -->
+            <call path="scriptlets/processQRCode.xml">
+                <input name="qrContent">$presentInvalidQR{qrContent}</input>
+                <output name="validationResult"/>
+                <output name="errorMessage"/>
+            </call>
+        </group>
+        
+        <group title="Validation Results" desc="Verify proper rejection">
+            <verify id="verifyRejection" desc="Verify QR code was properly rejected" 
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$processQRCode{validationResult}</input>
+                <input name="expected">"rejected"</input>
+            </verify>
+            
+            <verify id="verifyErrorMessage" desc="Verify appropriate error message"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$processQRCode{errorMessage}</input>
+                <input name="expected">"invalid_prefix"</input>
+            </verify>
+        </group>
+    </steps>
+    
+    <o>
+        <success>
+            <default>"Invalid QR code properly rejected as expected"</default>
+        </success>
+        <failure>
+            <case>
+                <cond>$STEP_STATUS{verifyRejection} = 'ERROR'</cond>
+                <message>"Invalid QR code was not properly rejected"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyErrorMessage} = 'ERROR'</cond>
+                <message>"Error message does not match expected format"</message>
+            </case>
+            <default>"Negative test case failed - invalid QR code should be rejected"</default>
+        </failure>
+    </o>
+</testcase>

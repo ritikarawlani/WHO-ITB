@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scriptlet id="validateHCERTPrefix" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>Validate HCERT Prefix</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>Scriptlet to validate that QR code content starts with HC1: prefix</gitb:description>
+    </metadata>
+    
+    <params>
+        <var name="qrContent" type="string"/>
+        <var name="expectedPrefix" type="string"/>
+        <var name="expectFailure" type="string" default="false"/>
+    </params>
+    
+    <steps>
+        <!-- Extract first 4 characters to check prefix -->
+        <assign to="actualPrefix">substring($qrContent, 1, 4)</assign>
+        
+        <if>
+            <cond>$expectFailure = "true"</cond>
+            <then>
+                <!-- Negative test - expect prefix to NOT match -->
+                <verify id="validateNegativePrefix" desc="Verify QR code does NOT start with HC1:"
+                        handler="StringValidator">
+                    <input name="actualstring">$actualPrefix</input>
+                    <input name="expectedstring">$expectedPrefix</input>
+                    <input name="expectMismatch">true</input>
+                </verify>
+            </then>
+            <else>
+                <!-- Positive test - expect prefix to match -->
+                <verify id="validatePositivePrefix" desc="Verify QR code starts with HC1:"
+                        handler="StringValidator">
+                    <input name="actualstring">$actualPrefix</input>
+                    <input name="expectedstring">$expectedPrefix</input>
+                </verify>
+            </else>
+        </if>
+    </steps>
+</scriptlet>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testcase id="tc-signature-algorithm-validation" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>Signature Algorithm Validation</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>
+            Test case to validate supported signature algorithms (ES256, PS256) in CWT header.
+            Tests algorithm claim validation according to GDHCN specifications.
+        </gitb:description>
+    </metadata>
+    
+    <actors>
+        <gitb:actor id="receiver" role="SUT"/>
+        <gitb:actor id="validator"/>
+    </actors>
+    
+    <steps stopOnError="true">
+        <group title="Setup" desc="Prepare test data">
+            <assign to="validCWT">"extracted_cwt_from_previous_test"</assign>
+            <assign to="supportedAlgorithms">["ES256", "PS256"]</assign>
+        </group>
+        
+        <group title="Algorithm Extraction" desc="Extract algorithm from CWT header">
+            <interact id="provideCWT" desc="Provide CWT for algorithm validation" inputTitle="CWT Data">
+                <instruct desc="Provide the CWT token for algorithm validation">$validCWT</instruct>
+                <request desc="CWT Token" name="cwtToken" inputType="TEXT"/>
+            </interact>
+            
+            <!-- Extract algorithm claim (claim '1') from COSE header -->
+            <call path="scriptlets/extractCOSEHeader.xml">
+                <input name="cwtToken">$provideCWT{cwtToken}</input>
+                <output name="coseHeader"/>
+                <output name="algorithmClaim"/>
+            </call>
+            
+            <!-- Validate algorithm is supported -->
+            <call path="scriptlets/validateSupportedAlgorithm.xml">
+                <input name="algorithm">$extractCOSEHeader{algorithmClaim}</input>
+                <input name="supportedAlgorithms">$supportedAlgorithms</input>
+                <output name="validationResult"/>
+                <output name="algorithmLevel"/>
+            </call>
+        </group>
+        
+        <group title="Algorithm Validation" desc="Verify algorithm support levels">
+            <verify id="verifyAlgorithmSupported" desc="Verify algorithm is supported"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$validateSupportedAlgorithm{validationResult}</input>
+                <input name="expected">"supported"</input>
+            </verify>
+            
+            <!-- Test ES256 (Primary) -->
+            <if>
+                <cond>$extractCOSEHeader{algorithmClaim} = "ES256"</cond>
+                <then>
+                    <verify id="verifyES256Level" desc="Verify ES256 is Primary level"
+                            handler="$DOMAIN{validationServiceAddress}">
+                        <input name="text">$validateSupportedAlgorithm{algorithmLevel}</input>
+                        <input name="expected">"Primary (ECC P-256)"</input>
+                    </verify>
+                </then>
+            </if>
+            
+            <!-- Test PS256 (Secondary) -->
+            <if>
+                <cond>$extractCOSEHeader{algorithmClaim} = "PS256"</cond>
+                <then>
+                    <verify id="verifyPS256Level" desc="Verify PS256 is Secondary level"
+                            handler="$DOMAIN{validationServiceAddress}">
+                        <input name="text">$validateSupportedAlgorithm{algorithmLevel}</input>
+                        <input name="expected">"Secondary (RSA PSS)"</input>
+                    </verify>
+                </then>
+            </if>
+        </group>
+        
+        <group title="COSE Parameter Validation" desc="Validate COSE parameter mapping">
+            <call path="scriptlets/validateCOSEParameter.xml">
+                <input name="algorithm">$extractCOSEHeader{algorithmClaim}</input>
+                <output name="coseParameter"/>
+            </call>
+            
+            <verify id="verifyCOSEParameter" desc="Verify COSE parameter matches algorithm"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$validateCOSEParameter{coseParameter}</input>
+                <input name="expected">$extractCOSEHeader{algorithmClaim}</input>
+            </verify>
+        </group>
+    </steps>
+    
+    <o>
+        <success>
+            <default>"Signature algorithm successfully validated and supported"</default>
+        </success>
+        <failure>
+            <case>
+                <cond>$STEP_STATUS{verifyAlgorithmSupported} = 'ERROR'</cond>
+                <message>"Signature algorithm is not supported by GDHCN specifications"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyES256Level} = 'ERROR'</cond>
+                <message>"ES256 algorithm level validation failed"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyPS256Level} = 'ERROR'</cond>
+                <message>"PS256 algorithm level validation failed"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyCOSEParameter} = 'ERROR'</cond>
+                <message>"COSE parameter does not match expected algorithm"</message>
+            </case>
+            <default>"Signature algorithm validation failed"</default>
+        </failure>
+    </o>
+</testcase>

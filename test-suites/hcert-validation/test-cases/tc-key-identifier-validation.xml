@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testcase id="tc-key-identifier-validation" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>Key Identifier Validation</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>
+            Test case to validate key identifier extraction and trust network lookup.
+            Tests 8-byte key ID format, ISO 3166-1 alpha-2 country code, and public key retrieval.
+        </gitb:description>
+    </metadata>
+    
+    <actors>
+        <gitb:actor id="receiver" role="SUT"/>
+        <gitb:actor id="validator"/>
+    </actors>
+    
+    <steps stopOnError="true">
+        <group title="Setup" desc="Prepare CWT for key identifier validation">
+            <assign to="validCWT">"extracted_cwt_token"</assign>
+        </group>
+        
+        <group title="Key Identifier Extraction" desc="Extract key ID and issuer from CWT">
+            <interact id="provideCWTForKeyValidation" desc="Provide CWT for key validation" inputTitle="CWT Token">
+                <instruct desc="Provide CWT token for key identifier validation">$validCWT</instruct>
+                <request desc="CWT Token" name="cwtToken" inputType="TEXT"/>
+            </interact>
+            
+            <!-- Extract Key Identifier (claim '4') from COSE header -->
+            <call path="scriptlets/extractKeyIdentifier.xml">
+                <input name="cwtToken">$provideCWTForKeyValidation{cwtToken}</input>
+                <output name="keyIdentifier"/>
+                <output name="keyIdLength"/>
+            </call>
+            
+            <!-- Extract Issuer (claim '1') from CWT payload -->
+            <call path="scriptlets/extractIssuer.xml">
+                <input name="cwtToken">$provideCWTForKeyValidation{cwtToken}</input>
+                <output name="issuerCode"/>
+            </call>
+        </group>
+        
+        <group title="Key ID Format Validation" desc="Validate key identifier format">
+            <!-- Verify Key ID is 8 bytes -->
+            <verify id="verifyKeyIdLength" desc="Verify key ID is 8 bytes"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$extractKeyIdentifier{keyIdLength}</input>
+                <input name="expected">"8"</input>
+            </verify>
+            
+            <!-- Verify issuer is ISO 3166-1 alpha-2 country code -->
+            <call path="scriptlets/validateCountryCode.xml">
+                <input name="countryCode">$extractIssuer{issuerCode}</input>
+                <output name="validationResult"/>
+                <output name="countryName"/>
+            </call>
+            
+            <verify id="verifyCountryCodeFormat" desc="Verify issuer is valid ISO 3166-1 alpha-2 code"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$validateCountryCode{validationResult}</input>
+                <input name="expected">"valid_iso_3166_1_alpha_2"</input>
+            </verify>
+        </group>
+        
+        <group title="Trust Network Lookup" desc="Retrieve public key from trust network">
+            <!-- Attempt to retrieve public key from trust network -->
+            <call path="scriptlets/retrievePublicKey.xml">
+                <input name="countryCode">$extractIssuer{issuerCode}</input>
+                <input name="keyIdentifier">$extractKeyIdentifier{keyIdentifier}</input>
+                <output name="publicKey"/>
+                <output name="retrievalResult"/>
+                <output name="keyMetadata"/>
+            </call>
+            
+            <verify id="verifyKeyRetrieval" desc="Verify public key was successfully retrieved"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$retrievePublicKey{retrievalResult}</input>
+                <input name="expected">"success"</input>
+            </verify>
+            
+            <!-- Validate retrieved public key format -->
+            <call path="scriptlets/validatePublicKeyFormat.xml">
+                <input name="publicKey">$retrievePublicKey{publicKey}</input>
+                <output name="keyFormat"/>
+                <output name="keyValidation"/>
+            </call>
+            
+            <verify id="verifyPublicKeyFormat" desc="Verify public key format is valid"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$validatePublicKeyFormat{keyValidation}</input>
+                <input name="expected">"valid_public_key"</input>
+            </verify>
+        </group>
+        
+        <group title="Key Metadata Validation" desc="Validate key metadata">
+            <!-- Verify key is onboarded to trust network -->
+            <verify id="verifyKeyOnboarding" desc="Verify key is properly onboarded"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$retrievePublicKey{keyMetadata}</input>
+                <input name="expected">"onboarded"</input>
+            </verify>
+        </group>
+    </steps>
+    
+    <o>
+        <success>
+            <default>"Key identifier validated and public key successfully retrieved from trust network"</default>
+        </success>
+        <failure>
+            <case>
+                <cond>$STEP_STATUS{verifyKeyIdLength} = 'ERROR'</cond>
+                <message>"Key identifier is not 8 bytes as required"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyCountryCodeFormat} = 'ERROR'</cond>
+                <message>"Issuer is not a valid ISO 3166-1 alpha-2 country code"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyKeyRetrieval} = 'ERROR'</cond>
+                <message>"Could not retrieve public key from trust network"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyPublicKeyFormat} = 'ERROR'</cond>
+                <message>"Retrieved public key format is invalid"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyKeyOnboarding} = 'ERROR'</cond>
+                <message>"Key is not properly onboarded to trust network"</message>
+            </case>
+            <default>"Key identifier validation failed"</default>
+        </failure>
+    </o>
+</testcase>

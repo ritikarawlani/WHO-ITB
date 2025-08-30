@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testcase id="tc-qr-valid-hcert" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/">
+    <metadata>
+        <gitb:name>Valid HCERT QR Code Validation</gitb:name>
+        <gitb:version>1.0</gitb:version>
+        <gitb:description>
+            Test case to validate that a QR code is a valid HCERT QR code with HC1: prefix.
+            Covers QR code decoding and HCERT format validation.
+        </gitb:description>
+    </metadata>
+    
+    <actors>
+        <gitb:actor id="receiver" role="SUT"/>
+        <gitb:actor id="validator"/>
+    </actors>
+    
+    <steps stopOnError="true">
+        <group title="Setup" desc="Test preparation">
+            <assign to="validQRCode">"HC1:NCFOXN%TSMAHN-H+XO5XF7:UY%FJ.FK6ZK7:EDOLOPCO8F6%E5.FK:*P QDHQF67463W5KF6946846G41NKF:QN:96-JN*T1:G1-QN-HKF%6PFQ/TSCZB1KEC0JH%F3*R1YS0JZ9*47+E4F0F6L9HFQE%6I*LG0Z+QN+KN%LO%8M50FLJI%6P9GQHO%F9I1K%P1R2CL%HD-7J/C0*T05THVGK3G-HKPQ1FC"</assign>
+            <assign to="expectedPrefix">"HC1:"</assign>
+        </group>
+        
+        <group title="QR Code Validation" desc="Validate QR code format and prefix">
+            <interact id="presentQRCode" desc="Present QR code to receiver" inputTitle="QR Code Input">
+                <instruct desc="Scan the provided HCERT QR code">$validQRCode</instruct>
+                <request desc="QR Code Content" name="qrContent" inputType="TEXT"/>
+            </interact>
+            
+            <!-- Validate QR code starts with HC1: prefix -->
+            <call path="scriptlets/validateHCERTPrefix.xml">
+                <input name="qrContent">$presentQRCode{qrContent}</input>
+                <input name="expectedPrefix">$expectedPrefix</input>
+            </call>
+            
+            <!-- Process QR code through GDHCN validator -->
+            <call path="scriptlets/processQRCode.xml">
+                <input name="qrContent">$presentQRCode{qrContent}</input>
+                <output name="decodedPayload"/>
+                <output name="validationResult"/>
+            </call>
+        </group>
+        
+        <group title="Validation Results" desc="Check validation outcomes">
+            <verify id="verifyQRDecoding" desc="Verify QR code was successfully decoded" 
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$processQRCode{validationResult}</input>
+                <input name="expected">"success"</input>
+            </verify>
+            
+            <verify id="verifyHCERTFormat" desc="Verify HCERT format compliance"
+                    handler="$DOMAIN{validationServiceAddress}">
+                <input name="text">$processQRCode{decodedPayload}</input>
+                <input name="expected">"valid_hcert"</input>
+            </verify>
+        </group>
+    </steps>
+    
+    <output>
+        <success>
+            <default>"QR code successfully validated as valid HCERT"</default>
+        </success>
+        <failure>
+            <case>
+                <cond>$STEP_STATUS{verifyQRDecoding} = 'ERROR'</cond>
+                <message>"QR code could not be decoded properly"</message>
+            </case>
+            <case>
+                <cond>$STEP_STATUS{verifyHCERTFormat} = 'ERROR'</cond>
+                <message>"QR code does not conform to HCERT format requirements"</message>
+            </case>
+            <default>"QR code validation failed"</default>
+        </failure>
+    </output>
+</testcase>
