@@ -15,10 +15,10 @@ services:
       interval: 3s
       retries: 10
   gitb-srv:
-    image: isaitb/gitb-srv:latest
+    image: isaitb/gitb-srv:nightly
     restart: unless-stopped
   gitb-ui:
-    image: isaitb/gitb-ui:latest
+    image: isaitb/gitb-ui:nightly
     restart: unless-stopped
     ports:
       - "10003:9000"
@@ -39,9 +39,9 @@ services:
         condition: service_healthy
       gitb-srv:
         condition: service_started
-  who-helper-services:
-    build:
-      context: ./who-helper
-    restart: unless-stopped
-    ports:
-      - "10005:8181"
+  # who-helper-services:
+  #   build:
+  #     context: ./who-helper
+  #   restart: unless-stopped
+  #   ports:
+  #     - "10005:8181"
