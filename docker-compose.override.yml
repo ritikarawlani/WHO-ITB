@@ -20,13 +20,14 @@ services:
   fhir-server:
     # This is the internal FHIR server that is used by the Test Bed to validate FHIR client test cases. It has no host port mappings 
     # as this is only expected to be used by the test engine directly.
-    image: costateixeira/hapistarter:2.0.0
+    image: hapiproject/hapi:latest
     restart: unless-stopped
     environment:
       - fhir_version=R4
       - server_port=8080
       - static_server_port=8080
-      - server_name=AllergyTB      
+      - server_name=ValidationServer  
+      - hapi.fhir.cr.enabled=true
       - hapi.fhir.allow_multiple_delete=true
       - hapi.fhir.server_address=localhost:8080
       - hapi.fhir.reuse_cached_search_results_millis=-1
@@ -38,10 +39,40 @@ services:
       - hapi.fhir.ig_runtime_upload_enabled=true
       - hapi.fhir.custom_content_path=/custom
       - hapi.fhir.app_content_path=/apps
+      - hapi.fhir.ig_runtime_upload_enabled=true
     volumes:
       - ./config/fhir/custom:/custom
       - ./config/fhir/apps:/apps
 
+
+
+  matchbox:
+    # This is the internal FHIR server that is used by the Test Bed to validate FHIR client test cases. It has no host port mappings 
+    # as this is only expected to be used by the test engine directly.
+    image: europe-west6-docker.pkg.dev/ahdis-ch/ahdis/matchbox:v4.0.12
+    restart: unless-stopped
+    ports:
+      - "8087:8080"
+    links:
+      - matchbox-db
+    volumes:
+      - ./matchbox:/config      
+  matchbox-db:
+    image: postgres:latest
+    container_name: matchbox-db
+    restart: always
+    # Comment out to not log queries
+    # command: ["postgres", "-c", "log_statement=all"]
+    # End comment out
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: 'matchbox'
+      POSTGRES_USER: 'matchbox'
+      POSTGRES_PASSWORD: 'matchbox'     
+      SPRING_CONFIG_LOCATION: 'file:///config/application.yml'      
+    volumes:
+      - ./data:/var/lib/postgresql/data
 
 
   # # Update gitb-srv to connect to GDHCN validator

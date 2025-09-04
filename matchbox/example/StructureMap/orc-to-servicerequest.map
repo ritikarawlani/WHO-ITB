@@ -1,0 +1,13 @@
+map "http://hsrt-kkrt.org/fhir/StructureMap/ORC-to-ServiceRequest" = "ORCtoServiceRequest"
+
+uses "http://hsrt-kkrt.org/fhir/StructureDefinition/ORCSegment" as source
+uses "http://hl7.org/fhir/StructureDefinition/ServiceRequest" alias ServiceRequest as target
+
+group ORCtoServiceRequest(source orc : ORCSegment, target sr : ServiceRequest) {
+
+  orc.ORC_1 as ORC_1 -> sr.intent = ORC_1;
+  orc.ORC_5 as ORC_5 -> sr.status = ORC_5;
+  
+  // authoredOn nur setzen, wenn ORC_1 == 'NW' -> beide Quellen angeben, Bedingung in Klammern
+  orc.ORC_1 as ordCode, orc.ORC_9 as ts where (ordCode = 'NW') -> sr.authoredOn = ts "SetAuthoredOn";
+}

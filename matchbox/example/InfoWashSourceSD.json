@@ -1,0 +1,622 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "InfoWashSource",
+  "url": "http://hsrt-kkrt.org/fhir/StructureDefinition/InfoWashSource",
+  "name": "InfoWashSource",
+  "status": "draft",
+  "description": "StructureDefinition für InfoWashSource – enthält alle Segmentfelder inline.",
+  "fhirVersion": "4.0.1",
+  "kind": "logical",
+  "abstract": false,
+  "type": "InfoWashSource",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/DomainResource",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "InfoWashSource",
+        "path": "InfoWashSource",
+        "short": "InfoWashSource Resource",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "DomainResource"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment",
+        "path": "InfoWashSource.PIDSegment",
+        "short": "PIDSegment Segment",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_3_1",
+        "path": "InfoWashSource.PIDSegment.PID_3_1",
+        "short": "PID_3_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_3_4_1",
+        "path": "InfoWashSource.PIDSegment.PID_3_4_1",
+        "short": "PID_3_4_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_5_1_1",
+        "path": "InfoWashSource.PIDSegment.PID_5_1_1",
+        "short": "PID_5_1_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_5_2",
+        "path": "InfoWashSource.PIDSegment.PID_5_2",
+        "short": "PID_5_2",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_7",
+        "path": "InfoWashSource.PIDSegment.PID_7",
+        "short": "PID_7",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_8_1",
+        "path": "InfoWashSource.PIDSegment.PID_8_1",
+        "short": "PID_8_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.DG1Segment",
+        "path": "InfoWashSource.DG1Segment",
+        "short": "DG1Segment Segment",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.DG1Segment.DG1_3_1",
+        "path": "InfoWashSource.DG1Segment.DG1_3_1",
+        "short": "DG1_3_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.DG1Segment.DG1_3_2",
+        "path": "InfoWashSource.DG1Segment.DG1_3_2",
+        "short": "DG1_3_2",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.DG1Segment.DG1_3_3",
+        "path": "InfoWashSource.DG1Segment.DG1_3_3",
+        "short": "DG1_3_3",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.OBRSegment",
+        "path": "InfoWashSource.OBRSegment",
+        "short": "OBRSegment Segment",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.OBRSegment.OBR_4_1",
+        "path": "InfoWashSource.OBRSegment.OBR_4_1",
+        "short": "OBR_4_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.OBRSegment.OBR_4_2",
+        "path": "InfoWashSource.OBRSegment.OBR_4_2",
+        "short": "OBR_4_2",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.OBRSegment.OBR_4_3",
+        "path": "InfoWashSource.OBRSegment.OBR_4_3",
+        "short": "OBR_4_3",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.ORCSegment",
+        "path": "InfoWashSource.ORCSegment",
+        "short": "ORCSegment Segment",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.ORCSegment.ORC_1",
+        "path": "InfoWashSource.ORCSegment.ORC_1",
+        "short": "ORC_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.ORCSegment.ORC_9",
+        "path": "InfoWashSource.ORCSegment.ORC_9",
+        "short": "ORC_9",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.TQ1Segment",
+        "path": "InfoWashSource.TQ1Segment",
+        "short": "TQ1Segment Segment",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.TQ1Segment.TQ1_7",
+        "path": "InfoWashSource.TQ1Segment.TQ1_7",
+        "short": "TQ1_7",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.TQ1Segment.TQ1_8",
+        "path": "InfoWashSource.TQ1Segment.TQ1_8",
+        "short": "TQ1_8",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.CTX_DEVICE_id",
+        "path": "InfoWashSource.CTX_DEVICE_id",
+        "short": "CTX_DEVICE_id",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.CTX_RAW_message",
+        "path": "InfoWashSource.CTX_RAW_message",
+        "short": "CTX_RAW_message",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.CTX_role",
+        "path": "InfoWashSource.CTX_role",
+        "short": "CTX_role",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      }
+    ]
+  },
+  "snapshot": {
+    "element": [
+      {
+        "id": "InfoWashSource",
+        "path": "InfoWashSource",
+        "short": "InfoWashSource Resource",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "DomainResource"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment",
+        "path": "InfoWashSource.PIDSegment",
+        "short": "PIDSegment Segment",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_3_1",
+        "path": "InfoWashSource.PIDSegment.PID_3_1",
+        "short": "PID_3_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_3_4_1",
+        "path": "InfoWashSource.PIDSegment.PID_3_4_1",
+        "short": "PID_3_4_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_5_1_1",
+        "path": "InfoWashSource.PIDSegment.PID_5_1_1",
+        "short": "PID_5_1_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_5_2",
+        "path": "InfoWashSource.PIDSegment.PID_5_2",
+        "short": "PID_5_2",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_7",
+        "path": "InfoWashSource.PIDSegment.PID_7",
+        "short": "PID_7",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.PIDSegment.PID_8_1",
+        "path": "InfoWashSource.PIDSegment.PID_8_1",
+        "short": "PID_8_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.DG1Segment",
+        "path": "InfoWashSource.DG1Segment",
+        "short": "DG1Segment Segment",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.DG1Segment.DG1_3_1",
+        "path": "InfoWashSource.DG1Segment.DG1_3_1",
+        "short": "DG1_3_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.DG1Segment.DG1_3_2",
+        "path": "InfoWashSource.DG1Segment.DG1_3_2",
+        "short": "DG1_3_2",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.DG1Segment.DG1_3_3",
+        "path": "InfoWashSource.DG1Segment.DG1_3_3",
+        "short": "DG1_3_3",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.OBRSegment",
+        "path": "InfoWashSource.OBRSegment",
+        "short": "OBRSegment Segment",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.OBRSegment.OBR_4_1",
+        "path": "InfoWashSource.OBRSegment.OBR_4_1",
+        "short": "OBR_4_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.OBRSegment.OBR_4_2",
+        "path": "InfoWashSource.OBRSegment.OBR_4_2",
+        "short": "OBR_4_2",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.OBRSegment.OBR_4_3",
+        "path": "InfoWashSource.OBRSegment.OBR_4_3",
+        "short": "OBR_4_3",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.ORCSegment",
+        "path": "InfoWashSource.ORCSegment",
+        "short": "ORCSegment Segment",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.ORCSegment.ORC_1",
+        "path": "InfoWashSource.ORCSegment.ORC_1",
+        "short": "ORC_1",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.ORCSegment.ORC_9",
+        "path": "InfoWashSource.ORCSegment.ORC_9",
+        "short": "ORC_9",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.TQ1Segment",
+        "path": "InfoWashSource.TQ1Segment",
+        "short": "TQ1Segment Segment",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.TQ1Segment.TQ1_7",
+        "path": "InfoWashSource.TQ1Segment.TQ1_7",
+        "short": "TQ1_7",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.TQ1Segment.TQ1_8",
+        "path": "InfoWashSource.TQ1Segment.TQ1_8",
+        "short": "TQ1_8",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.CTX_DEVICE_id",
+        "path": "InfoWashSource.CTX_DEVICE_id",
+        "short": "CTX_DEVICE_id",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.CTX_RAW_message",
+        "path": "InfoWashSource.CTX_RAW_message",
+        "short": "CTX_RAW_message",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "InfoWashSource.CTX_role",
+        "path": "InfoWashSource.CTX_role",
+        "short": "CTX_role",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      }
+    ]
+  }
+}

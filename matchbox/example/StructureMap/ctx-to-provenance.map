@@ -1,0 +1,24 @@
+map "http://hsrt-kkrt.org/fhir/StructureMap/CTX-to-Provenance" = "CTXtoProvenance"
+
+uses "http://hsrt-kkrt.org/fhir/StructureDefinition/InfoWashSource" as source
+uses "http://hl7.org/fhir/StructureDefinition/Provenance" as target
+
+group CTXtoProvenance(source ctx : CTXSegment, target prov : Provenance) {
+
+  // Agent: wer hat die Nachricht geschickt -> CTX_DEVICE_id
+  prov.agent as ag then {
+    ag.who as whoRef then {
+      whoRef.identifier -> create('Identifier') as id then {
+        src.CTX_DEVICE_id -> id.value;
+      };
+    };
+  };
+
+  // Entity: Rolle & Rohdaten speichern
+  prov.entity as ent then {
+    src.CTX_role -> ent.role;
+    ent.what as whatRef then {
+      src.CTX_RAW_message -> whatRef.display;
+    };
+  };
+}

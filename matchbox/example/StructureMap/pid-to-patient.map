@@ -1,0 +1,52 @@
+map "http://hsrt-kkrt.org/fhir/StructureMap/PIDtoPatient" = "PIDtoPatient"
+
+// uses "http://hsrt-kkrt.org/fhir/StructureDefinition/PIDSegment" as source -> the logical model defines it as BackboneElement
+uses "http://hl7.org/fhir/StructureDefinition/Patient" as target
+
+group PIDtoPatient(source pid, target patient : Patient) {
+
+    pid -> patient.identifier = create('Identifier') as id then {
+      pid.PID_3_1 as PID_3_1 -> id.value;
+      pid.PID_3_4_1 as PID_3_4_1 -> id.system;
+    }"identifier";
+    
+
+    pid -> patient.name = create('HumanName') as nm then {
+      pid.PID_5_1_1 as PID_5_1_1 -> nm.family = PID_5_1_1 "PID_5_1_1";
+      pid.PID_5_2 as PID_5_2 -> nm.given = PID_5_2 "PID_5_2";
+    } "name";
+
+    pid.PID_7 as PID_7 -> patient.birthDate = PID_7 "PID_7";
+
+// ConeceptMaps needs to be defined    pid.PID_8_1 as PID_8_1 -> patient.gender = translate(PID_8_1, 'http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70001-to-administrative-gender', 'code');
+
+  // ===== Identifier =====
+  // patient.identifier -> create('Identifier') as id then {
+  //   pid.PID_3_1 -> id.value;
+  //   pid.PID_3_4_1 -> id.system;
+
+  //   // Identifier.type als CodeableConcept + Coding
+  //   id.type -> create('CodeableConcept') as idType then {
+  //     idType.coding -> create('Coding') as idCoding then {
+  //       pid.PID_3_5 as idCode -> idCoding.code = translate(idCode, 'http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70203-to-v2-0203', 'code');
+  //     };
+  //   };
+  // };
+
+  // // ===== HumanName =====
+  // patient.name -> create('HumanName') as nm then {
+  //   pid.PID_5_1_1 -> nm.family;
+  //   pid.PID_5_2 -> nm.given;
+  //   pid.PID_5_3 -> nm.given;
+  //   pid.PID_5_5 -> nm.prefix;
+  //   pid.PID_5_4 -> nm.suffix;
+  //   pid.PID_5_6 -> nm.suffix;
+  //   pid.PID_5_7 as nmCode -> nm.use = translate(nmCode, 'http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70200-to-name-use', 'code');
+  // };
+
+  // // ===== Geburtsdatum =====
+  // pid.PID_7 -> patient.birthDate;
+
+  // // ===== Geschlecht =====
+  // pid.PID_8_1 as gCode -> patient.gender = translate(gCode, 'http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70001-to-administrative-gender', 'code');
+}

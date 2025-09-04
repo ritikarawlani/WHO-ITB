@@ -1,0 +1,36 @@
+map "http://hsrt-kkrt.org/fhir/StructureMap/DG1-to-Condition" = "DG1toCondition"
+
+uses "http://hsrt-kkrt.org/fhir/StructureDefinition/DG1Segment" as source
+uses "http://hl7.org/fhir/StructureDefinition/Condition" as target
+
+
+group DG1toCondition(source dg1 : DG1Segment, target condition : Condition) {
+
+  dg1 -> condition.code = create('CodeableConcept') as cc then {
+    dg1 -> cc.coding = create('Coding') as c then {
+      dg1.DG1_3_1 as DG1_3_1 -> c.code = DG1_3_1;
+      dg1.DG1_3_2 as DG1_3_2 -> c.display = DG1_3_2;
+      dg1.DG1_3_3 as DG1_3_3 -> c.system = DG1_3_3;
+      dg1.DG1_3_7 as DG1_3_7 -> c.version	= DG1_3_7;
+    }"coding";
+    dg1.DG1_3_9 as DG1_3_9 -> cc.text;
+  }"codeableconcept";
+}
+  
+
+
+/*
+group DG1toCondition(source dg1 : DG1Segment, target condition : Condition) {
+
+  // ===== Condition.code als CodeableConcept =====
+  condition.code -> create('CodeableConcept') as cc then {
+    cc.coding -> create('Coding') as coding then {
+      dg1.DG1_3_1 -> coding.code;
+      dg1.DG1_3_2 -> coding.display;
+      dg1.DG1_3_3 -> coding.system;
+      dg1.DG1_3_7 -> coding.version;
+    };
+    dg1.DG1_3_9 -> cc.text;
+  };
+}
+*/

@@ -1,0 +1,58 @@
+map "http://hsrt-kkrt.org/fhir/StructureMap/OBR-to-ServiceRequest" = "OBRtoServiceRequest"
+
+uses "http://hsrt-kkrt.org/fhir/StructureDefinition/OBRSegment" as source
+uses "http://hl7.org/fhir/StructureDefinition/ServiceRequest" as target
+
+group OBRtoServiceRequest(source obr : OBRSegment, target sr : ServiceRequest) {
+
+  obr -> sr.code = create('CodeableConcept') as cc then {
+    obr -> cc.code = create('Coding') as c then {
+      obr.OBR_4_1 as OBR_4_1 -> c.code = OBR_4_1;
+      obr.OBR_4_2 as OBR_4_2 -> c.display = OBR_4_2;
+      obr.OBR_4_3 as OBR_4_3 -> c.system = OBR_4_3;
+      obr.OBR_4_7 as OBR_4_7 -> c.version = OBR_4_7;
+    }"coding";
+    obr.OBR_4_9 as OBR_4_9 -> cc.text = OBR_4_9;
+  }"codeableconcept";
+
+  obr.OBR_5_1 as priCode -> sr.priority = translate(priCode, 'http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70485-to-request-priority', 'code');
+
+
+  obr -> sr.reasonCode = create('CodeableConcept') as rc then {
+    obr -> rc.code = create('Coding') as c then {
+      obr.OBR_31_1 as OBR_31_1 -> c.code = OBR_31_1;
+      obr.OBR_31_2 as OBR_31_2 -> c.display = OBR_31_2;
+      obr.OBR_31_3 as OBR_31_3 -> c.system = OBR_31_3;
+      obr.OBR_31_7 as OBR_31_7 -> c.version = OBR_31_7;
+    }"coding";
+    obr.OBR_31_9 as OBR_31_9 -> rc.text = OBR_31_9;
+  }"codeableconcept";
+
+
+
+  /*
+  // ===== ServiceRequest.code =====
+  sr.code -> create('CodeableConcept') as cc then {
+    cc.coding -> create('Coding') as coding then {
+      obr.OBR_4_1 -> coding.code;
+      obr.OBR_4_2 -> coding.display;
+      obr.OBR_4_3 -> coding.system;
+      obr.OBR_4_7 -> coding.version;
+    };
+    obr.OBR_4_9 -> cc.text;
+  };
+
+  // ===== Request Priority =====
+  obr.OBR_5_1 as priCode -> sr.priority = translate(priCode, 'http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70485-to-request-priority', 'code');
+
+  // ===== ReasonCode =====
+  sr.reasonCode -> create('CodeableConcept') as rc then {
+    rc.coding -> create('Coding') as rcCoding then {
+      obr.OBR_31_1 -> rcCoding.code;
+      obr.OBR_31_2 -> rcCoding.display;
+      obr.OBR_31_3 -> rcCoding.system;
+      obr.OBR_31_7 -> rcCoding.version;
+    };
+    obr.OBR_31_9 -> rc.text;
+  };*/
+}

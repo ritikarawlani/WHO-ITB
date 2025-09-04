@@ -1,0 +1,27 @@
+map "http://hsrt-kkrt.org/fhir/StructureMap/TQ1-to-ServiceRequest" = "TQ1toServiceRequest"
+
+uses "http://hsrt-kkrt.org/fhir/StructureDefinition/TQ1Segment" as source
+uses "http://hl7.org/fhir/StructureDefinition/ServiceRequest" as target
+
+group TQ1toServiceRequest(source tq1 : TQ1Segment, target sr : ServiceRequest) {
+
+  tq1 -> sr.occurrenceTiming = create('occurrenceTiming') as ot then {
+    tq1 -> ot.repeat = create('TimingRepeatComponent') as rpt then {
+      tq1 -> rpt.boundsPeriod = create('Period') as p then {
+        tq1.TQ1_7 as TQ1_7 -> p.start = TQ1_7;
+        tq1.TQ1_8 as TQ1_8 -> p.end = TQ1_8;
+      }"period";
+    }"timingrepeatcomponent";
+  }"occurrencetiming";
+
+
+  // Occurrence Timing -> boundsPeriod
+  sr.occurrenceTiming -> create('Timing') as tm then {
+    tm.repeat -> create('TimingRepeatComponent') as rpt then {
+      rpt.boundsPeriod -> create('Period') as prd then {
+        tq1.TQ1_7 -> prd.start;
+        tq1.TQ1_8 -> prd.end;
+      };
+    };
+  };
+}

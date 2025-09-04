@@ -1,0 +1,96 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "DG1Segment",
+  "url": "http://hsrt-kkrt.org/fhir/StructureDefinition/DG1Segment",
+  "name": "DG1Segment",
+  "status": "draft",
+  "fhirVersion": "4.0.1",
+  "kind": "logical",
+  "abstract": true,
+  "type": "DG1Segment",
+  "date": "2025-08-27",
+  "publisher": "HSRT KKRT",
+  "description": "Clean rebuilt logical model for DG1Segment with numeric element IDs.",
+  "snapshot": {
+    "element": [
+      {
+        "id": "DG1Segment",
+        "path": "DG1Segment",
+        "short": "DG1Segment root",
+        "definition": "HL7 V2 DG1Segment Segment containing mapped fields.",
+        "min": 1,
+        "max": "1",
+        "type": [
+          {
+            "code": "DG1Segment"
+          }
+        ]
+      },
+      {
+        "id": "DG1Segment.DG1_3_1",
+        "path": "DG1Segment.DG1_3_1",
+        "short": "DG1_3_1",
+        "definition": "HL7 V2 field DG1_3_1 from DG1Segment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "code"
+          }
+        ]
+      },
+      {
+        "id": "DG1Segment.DG1_3_2",
+        "path": "DG1Segment.DG1_3_2",
+        "short": "DG1_3_2",
+        "definition": "HL7 V2 field DG1_3_2 from DG1Segment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "DG1Segment.DG1_3_3",
+        "path": "DG1Segment.DG1_3_3",
+        "short": "DG1_3_3",
+        "definition": "HL7 V2 field DG1_3_3 from DG1Segment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "uri"
+          }
+        ]
+      },
+      {
+        "id": "DG1Segment.DG1_3_7",
+        "path": "DG1Segment.DG1_3_7",
+        "short": "DG1_3_7",
+        "definition": "HL7 V2 field DG1_3_7 from DG1Segment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "DG1Segment.DG1_3_9",
+        "path": "DG1Segment.DG1_3_9",
+        "short": "DG1_3_9",
+        "definition": "HL7 V2 field DG1_3_9 from DG1Segment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      }
+    ]
+  }
+}

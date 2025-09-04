@@ -1,0 +1,151 @@
+map "http://hsrt-kkrt.org/fhir/StructureMap/InfoWashSource-to-Bundle" = "IWS2Bundle"
+
+uses "http://hsrt-kkrt.org/fhir/StructureDefinition/InfoWashSource" alias InfoWashSource as source
+uses "http://hl7.org/fhir/StructureDefinition/Bundle" alias Bundle as target
+uses "http://hl7.org/fhir/StructureDefinition/Patient" alias Patient as target
+uses "http://hl7.org/fhir/StructureDefinition/Condition" alias Condition as target
+uses "http://hl7.org/fhir/StructureDefinition/ServiceRequest" alias ServiceRequest as target
+uses "http://hl7.org/fhir/StructureDefinition/Provenance" alias Provenance as target
+
+imports "http://hsrt-kkrt.org/fhir/StructureMap/PIDtoPatient"
+imports "http://hsrt-kkrt.org/fhir/StructureMap/DG1-to-Condition"
+imports "http://hsrt-kkrt.org/fhir/StructureMap/ORC-to-ServiceRequest"
+imports "http://hsrt-kkrt.org/fhir/StructureMap/OBR-to-ServiceRequest"
+imports "http://hsrt-kkrt.org/fhir/StructureMap/TQ1-to-ServiceRequest"
+// imports "http://hsrt-kkrt.org/fhir/StructureMap/CTX-to-Provenance"
+
+
+
+/* ---------------------------
+   Master: Bundle + Einträge
+   --------------------------- */
+group IWS2Bundle(source src : InfoWashSource, target bundle : Bundle) {
+
+  // Bundle initialisieren
+  src -> bundle.type = 'transaction' then {
+
+  
+  src -> bundle.entry as pEntry, 
+                        pEntry.resource = create('Patient') as pat,
+                        pat.id = uuid() as patientID,
+                        pEntry.fullUrl = ('urn:uuid:' + %patientID) as patFull,
+                        pEntry.request as preq,
+                        preq.method = 'POST',
+                        preq.url = 'Patient'
+                        then {
+                          // -----------------
+                          // Patient (PID)
+                          // -----------------                          
+                            src.PIDSegment as pid then PIDtoPatient(pid, pat) "patient";
+
+                          // // -----------------
+                          // // Condition (DG1)
+                          // // -----------------
+
+                          src.DG1Segment as dg1 -> bundle.entry as cEntry,
+                                                    cEntry.resource = create('Condition') as cond,
+                                                    cond.id = uuid() as conditionID,
+                                                    cEntry.fullUrl = ('urn:uuid:' + %conditionID) as condFull,
+                                                    cond.subject = create('Reference') as cSubRef,
+                                                    cSubRef.reference = patFull,
+                                                    cEntry.request as creq,
+                                                    creq.method = 'POST',
+                                                    creq.url = 'Condition'
+                                                    then DG1toCondition(dg1, cond) "condition";
+
+                        } "HL7v2";
+
+
+
+  // src.DG1Segment as dg1 -> bundle.entry as eCond then {
+  //   eCond.resource -> create('Condition') as cond then DG1toCondition(dg1, cond);
+  //   dg1 -> cond.id = uuid() as conditionID "id";
+  //   src -> eCond.fullUrl = append('urn:uuid:', conditionID) "fullUrl";
+  //   eCond.resource as cond then {
+  //     cond.subject as csub then {
+  //       src -> csub.reference = append('urn:uuid:', patientID) "reference";
+  //     };
+  //   } "set-subject";
+  //   eCond.request as creq then {
+  //     src -> creq.method = 'POST' "method";
+  //     src -> creq.url = 'Condition' "url";
+  //   } "request";
+  // } "condition";
+
+  // // -----------------
+  // // ServiceRequest (via Hilfsgruppe)
+  // // -----------------
+/*
+  src.ORCSegment as orc, src.OBRSegment as obr, src.TQ1Segment as tq1 -> bundle.entry as sEntry,
+                            sEntry.resource = create('ServiceRequest') as sr,
+                            sr.id = uuid() as servicerequestID,
+                            sEntry.fullUrl = ('urn:uuid:' + %servicerequestID),
+                            sEntry.request as sreq,
+                            sreq.method = 'POST',
+                            sreq.url = 'ServiceRequest'
+                            then ORCtoServiceRequest(orc, sr), then OBRtoServiceRequest(obr,sr), then TQ1toServiceRequest(tq1,sr) "servicerequest";
+*/
+
+
+
+
+
+
+  // src -> bundle.entry as eSR then {
+  //     eSR.resource -> create('ServiceRequest') as sr then 
+  //         ServiceRequestCombined(src, sr) "combine-subgroups";
+
+  //         // ID + FullUrl innerhalb desselben Blocks setzen
+  //         src -> sr.id = uuid() as servicerequestID "set-id";
+  //         src -> eSR.fullUrl = append('urn:uuid:', servicerequestID) "set-fullUrl";
+
+  //         // Referenzen Patient + Condition
+  //         sr.subject as sref then {
+  //             src -> sref.reference = append('urn:uuid:', patientID) "subject-ref";
+  //         } "set-subject-ref";
+  //         sr.reasonReference as rref then {
+  //             src -> rref.reference = append('urn:uuid:', conditionID) "condition-ref";
+  //         } "set-condition-ref";
+
+  //     // HTTP-Request für ServiceRequest
+  //     eSR.request as sreq then {
+  //         src -> sreq.method = 'POST' "method";
+  //         src -> sreq.url = 'ServiceRequest' "url";
+  //     } "request";
+  // } "serviceRequest";
+
+  // // -----------------
+  // // Provenance
+  // // -----------------
+  // src -> bundle.entry as eProv then {
+  //   eProv.resource -> create('Provenance') as prov then CTXtoProvenance(src, prov);
+  //   src -> prov.id = uuid() as provenanceID "id";
+  //   src -> eProv.fullUrl = append('urn:uuid:', provenanceID) "fullUrl";
+
+  //   // Provenance target -> alle relevanten Ressourcen
+  //   prov.target as t1 then {
+  //     src -> t1.reference = append('urn:uuid:', patientID) "target-ref";
+  //   };
+  //   prov.target as t2 then {
+  //     src -> t2.reference = append('urn:uuid:', conditionID) "target-ref";
+  //   };
+  //   prov.target as t3 then {
+  //     src -> t3.reference = append('urn:uuid:', servicerequestID) "target-ref";
+  //   };
+
+  //   eProv.request as pvreq then {
+  //     src -> pvreq.method = 'POST' "method";
+  //     src -> pvreq.url = 'Provenance' "url";
+  //   } "request";
+  // } "provenance";
+  }"bundle";
+}
+
+/* ---------------------------
+   Hilfsgruppe: ServiceRequest Combined (OE: Needs to be below)
+   --------------------------- */
+group ServiceRequestCombined(source src : InfoWashSource,  target sr : ServiceRequest) {
+  src.ORCSegment as orc -> sr then ORCtoServiceRequest(orc, sr) "orc";
+  src.OBRSegment as obr -> sr then OBRtoServiceRequest(obr, sr) "obr";
+  src.TQ1Segment as tq1 -> sr then TQ1toServiceRequest(tq1, sr) "tq1";
+}

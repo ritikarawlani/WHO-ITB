@@ -1,0 +1,174 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "OBRSegment",
+  "url": "http://hsrt-kkrt.org/fhir/StructureDefinition/OBRSegment",
+  "name": "OBRSegment",
+  "status": "draft",
+  "fhirVersion": "4.0.1",
+  "kind": "logical",
+  "abstract": true,
+  "type": "OBRSegment",
+  "date": "2025-08-27",
+  "publisher": "HSRT KKRT",
+  "description": "Clean rebuilt logical model for OBRSegment with numeric element IDs.",
+  "snapshot": {
+    "element": [
+      {
+        "id": "OBRSegment",
+        "path": "OBRSegment",
+        "short": "OBRSegment root",
+        "definition": "HL7 V2 OBRSegment Segment containing mapped fields.",
+        "min": 1,
+        "max": "1",
+        "type": [
+          {
+            "code": "OBRSegment"
+          }
+        ]
+      },
+      {
+        "id": "OBRSegment.OBR_4_1",
+        "path": "OBRSegment.OBR_4_1",
+        "short": "OBR_4_1",
+        "definition": "HL7 V2 field OBR_4_1 from OBRSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "code"
+          }
+        ]
+      },
+      {
+        "id": "OBRSegment.OBR_4_2",
+        "path": "OBRSegment.OBR_4_2",
+        "short": "OBR_4_2",
+        "definition": "HL7 V2 field OBR_4_2 from OBRSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "OBRSegment.OBR_4_3",
+        "path": "OBRSegment.OBR_4_3",
+        "short": "OBR_4_3",
+        "definition": "HL7 V2 field OBR_4_3 from OBRSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "uri"
+          }
+        ]
+      },
+      {
+        "id": "OBRSegment.OBR_4_7",
+        "path": "OBRSegment.OBR_4_7",
+        "short": "OBR_4_7",
+        "definition": "HL7 V2 field OBR_4_7 from OBRSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "OBRSegment.OBR_4_9",
+        "path": "OBRSegment.OBR_4_9",
+        "short": "OBR_4_9",
+        "definition": "HL7 V2 field OBR_4_9 from OBRSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "OBRSegment.OBR_5_1",
+        "path": "OBRSegment.OBR_5_1",
+        "short": "OBR_5_1",
+        "definition": "HL7 V2 field OBR_5_1 from OBRSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "code"
+          }
+        ]
+      },
+      {
+        "id": "OBRSegment.OBR_31_1",
+        "path": "OBRSegment.OBR_31_1",
+        "short": "OBR_31_1",
+        "definition": "HL7 V2 field OBR_31_1 from OBRSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "code"
+          }
+        ]
+      },
+      {
+        "id": "OBRSegment.OBR_31_2",
+        "path": "OBRSegment.OBR_31_2",
+        "short": "OBR_31_2",
+        "definition": "HL7 V2 field OBR_31_2 from OBRSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "OBRSegment.OBR_31_3",
+        "path": "OBRSegment.OBR_31_3",
+        "short": "OBR_31_3",
+        "definition": "HL7 V2 field OBR_31_3 from OBRSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "uri"
+          }
+        ]
+      },
+      {
+        "id": "OBRSegment.OBR_31_7",
+        "path": "OBRSegment.OBR_31_7",
+        "short": "OBR_31_7",
+        "definition": "HL7 V2 field OBR_31_7 from OBRSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "OBRSegment.OBR_31_9",
+        "path": "OBRSegment.OBR_31_9",
+        "short": "OBR_31_9",
+        "definition": "HL7 V2 field OBR_31_9 from OBRSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      }
+    ]
+  }
+}

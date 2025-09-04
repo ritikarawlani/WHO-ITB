@@ -1,0 +1,29 @@
+{
+    "resourceType": "InfoWashSource",
+    "PIDSegment": {
+    "PID_3_1": "4661805977",
+    "PID_3_4_1": "HOSPITAL",
+    "PID_5_1_1": "Rogner",
+    "PID_5_2": "Sibylla",
+    "PID_7": "1955-05-15",
+    "PID_8_1": "F"
+    },
+    "DG1Segment": {
+    "DG1_3_1": "M17.9",
+    "DG1_3_2": "Gonarthrose",
+    "DG1_3_3": "ICD-10-GM"
+    },
+    "OBRSegment": {
+    "OBR_4_1": "5-987",
+    "OBR_4_2": "Appendektomie",
+    "OBR_4_3": "OPS"
+    },
+    "ORCSegment": {
+    "ORC_1": "NW",
+    "ORC_9": "2025-08-25T20:59:00"
+    },
+    "TQ1Segment": {
+    "TQ1_7": "2025-09-08T08:00:00",
+    "TQ1_8": "2025-09-08T12:00:00"
+    }
+  }

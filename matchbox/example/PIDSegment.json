@@ -1,0 +1,187 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "PIDSegment",
+  "url": "http://hsrt-kkrt.org/fhir/StructureDefinition/PIDSegment",
+  "name": "PIDSegment",
+  "status": "draft",
+  "fhirVersion": "4.0.1",
+  "kind": "logical",
+  "abstract": true,
+  "type": "PIDSegment",
+  "date": "2025-08-27",
+  "publisher": "HSRT KKRT",
+  "description": "Clean rebuilt logical model for PIDSegment with numeric element IDs.",
+  "snapshot": {
+    "element": [
+      {
+        "id": "PIDSegment",
+        "path": "PIDSegment",
+        "short": "PIDSegment root",
+        "definition": "HL7 V2 PIDSegment Segment containing mapped fields.",
+        "min": 1,
+        "max": "1",
+        "type": [
+          {
+            "code": "PIDSegment"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_3_1",
+        "path": "PIDSegment.PID_3_1",
+        "short": "PID_3_1",
+        "definition": "HL7 V2 field PID_3_1 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_3_4_1",
+        "path": "PIDSegment.PID_3_4_1",
+        "short": "PID_3_4_1",
+        "definition": "HL7 V2 field PID_3_4_1 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "url"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_3_5",
+        "path": "PIDSegment.PID_3_5",
+        "short": "PID_3_5",
+        "definition": "HL7 V2 field PID_3_5 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "code"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_5_1_1",
+        "path": "PIDSegment.PID_5_1_1",
+        "short": "PID_5_1_1",
+        "definition": "HL7 V2 field PID_5_1_1 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_5_2",
+        "path": "PIDSegment.PID_5_2",
+        "short": "PID_5_2",
+        "definition": "HL7 V2 field PID_5_2 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_5_3",
+        "path": "PIDSegment.PID_5_3",
+        "short": "PID_5_3",
+        "definition": "HL7 V2 field PID_5_3 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_5_4",
+        "path": "PIDSegment.PID_5_4",
+        "short": "PID_5_4",
+        "definition": "HL7 V2 field PID_5_4 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_5_5",
+        "path": "PIDSegment.PID_5_5",
+        "short": "PID_5_5",
+        "definition": "HL7 V2 field PID_5_5 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_5_6",
+        "path": "PIDSegment.PID_5_6",
+        "short": "PID_5_6",
+        "definition": "HL7 V2 field PID_5_6 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_5_7",
+        "path": "PIDSegment.PID_5_7",
+        "short": "PID_5_7",
+        "definition": "HL7 V2 field PID_5_7 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_7",
+        "path": "PIDSegment.PID_7",
+        "short": "PID_7",
+        "definition": "HL7 V2 field PID_7 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "date"
+          }
+        ]
+      },
+      {
+        "id": "PIDSegment.PID_8_1",
+        "path": "PIDSegment.PID_8_1",
+        "short": "PID_8_1",
+        "definition": "HL7 V2 field PID_8_1 from PIDSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "code"
+          }
+        ]
+      }
+    ]
+  }
+}

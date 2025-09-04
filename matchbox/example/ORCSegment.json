@@ -1,0 +1,70 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "ORCSegment",
+  "url": "http://hsrt-kkrt.org/fhir/StructureDefinition/ORCSegment",
+  "name": "ORCSegment",
+  "status": "draft",
+  "fhirVersion": "4.0.1",
+  "kind": "logical",
+  "abstract": true,
+  "type": "ORCSegment",
+  "date": "2025-08-27",
+  "publisher": "HSRT KKRT",
+  "description": "Clean rebuilt logical model for ORCSegment with numeric element IDs.",
+  "snapshot": {
+    "element": [
+      {
+        "id": "ORCSegment",
+        "path": "ORCSegment",
+        "short": "ORCSegment root",
+        "definition": "HL7 V2 ORCSegment Segment containing mapped fields.",
+        "min": 1,
+        "max": "1",
+        "type": [
+          {
+            "code": "ORCSegment"
+          }
+        ]
+      },
+      {
+        "id": "ORCSegment.ORC_1",
+        "path": "ORCSegment.ORC_1",
+        "short": "ORC_1",
+        "definition": "HL7 V2 field ORC_1 from ORCSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "code"
+          }
+        ]
+      },
+      {
+        "id": "ORCSegment.ORC_5",
+        "path": "ORCSegment.ORC_5",
+        "short": "ORC_5",
+        "definition": "HL7 V2 field ORC_5 from ORCSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "code"
+          }
+        ]
+      },
+      {
+        "id": "ORCSegment.ORC_9",
+        "path": "ORCSegment.ORC_9",
+        "short": "ORC_9",
+        "definition": "HL7 V2 field ORC_9 from ORCSegment.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "dateTime"
+          }
+        ]
+      }
+    ]
+  }
+}
