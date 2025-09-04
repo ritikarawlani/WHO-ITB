@@ -24,6 +24,12 @@ hapi:
       terminology:
         name: hl7.terminology
         version: 3.1.0
+      trust:
+        packageUrl: https://build.fhir.org/ig/WorldHealthOrganization/smart-trust-phw/package.tgz
+        name: smart.who.int.trust-phw
+        version: 0.1.0
+        reloadExisting: true
+        installMode: STORE_AND_INSTALL
       icvp:
         packageUrl: https://https://worldhealthorganization.github.io/smart-icvp/package.tgz
         name: smart.who.int.icvp
