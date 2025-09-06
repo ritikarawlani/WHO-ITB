@@ -1,5 +1,8 @@
 @bridge = http://localhost:8000
-@fhir = http://localhost:8087/matchboxv3/fhir
+@fhir = http://localhost:8080/fhir
+
+@matchbox = http://localhost:8087/matchboxv3/fhir
+
 
 @ig_url = https://example.org/your-ig
 
@@ -8,5 +11,55 @@ GET {{bridge}}/health
 Accept: application/json
 
 ###
-GET http://localhost:8000/health
-Accept: application/json
+GET http://localhost:8000/docs
+
+
+### Simplified IG upload
+POST http://localhost:8000/echo
+Content-Type: application/json
+
+{"ig_url":"https://build.fhir.org/ig/costateixeira/smart-trust-phw/"}
+
+
+### Simplified IG upload
+POST http://localhost:8000/fhir/upload_ig
+Content-Type: application/json
+
+{ "ig_url": "https://build.fhir.org/ig/WorldHealthOrganization/smart-icvp/branches/ritika" }
+
+###
+POST http://localhost:8000/upload_ig/matchbox?ig_url=https://worldhealthorganization.github.io/smart-icvp/branches/ritika
+
+###
+# @name transform
+POST http://localhost:8000/transform?source=http://smart.who.int/icvp/StructureMap/ICVPClaimtoIPS
+Content-Type: application/json
+Accept: application/fhir+json
+
+{
+  "dob" : "1994-10-13",
+  "gn" : "Parent/Antonio Rojas",
+  "n" : "Cristina Rodriguez",
+  "ndt" : "NI",
+  "nid" : "126008-7",
+  "ntl" : "CHL",
+  "s" : "male",
+  "v" : {
+    "bo" : "A1234",
+    "cn" : "Juan Castro",
+    "dt" : "2020-11-15",
+    "is" : "MINSALUD",
+    "vle" : "2025-11-15",
+    "vls" : "2020-11-15",
+    "vp" : "YellowFeverProductd2c75a15ed309658b3968519ddb31690"
+  }
+}
+
+
+
+### Validate the transform result (uses previous response)
+POST {{fhir}}/Bundle/$validate?profile=http://hl7.org/fhir/uv/ips/StructureDefinition/Bundle-uv-ips
+Content-Type: application/fhir+json
+
+{{transform.response.body.result}}
+

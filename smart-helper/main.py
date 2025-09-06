@@ -7,10 +7,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
-from fastapi import FastAPI, Body, HTTPException, Header, Query, Request
+from fastapi import FastAPI, Body, HTTPException, Header, Query, Request, Form, Header, File, UploadFile, Form
 from fastapi.responses import JSONResponse, PlainTextResponse, HTMLResponse
 from pydantic import BaseModel, Field
 import yaml  # for /openapi.yaml
+
 
 import logging
 import base64
@@ -380,6 +381,49 @@ def _upload_ig_core(ig_url: str, host: str, token: Optional[str]):
         "results": results,
     }
 
+
+def _upload_ig_core_bytes(pkg_bytes: bytes, host: str, token: Optional[str]):
+    # 1) Extract & classify
+    by_type = {t: [] for t in UPLOAD_ORDER}
+    skipped: List[str] = []
+    errors: List[Dict[str, Any]] = []
+    results: List[Dict[str, Any]] = []
+
+    for path, data in iter_package_files(pkg_bytes):
+        rt, payload, fmt = classify_file(path, data)
+        if not rt:
+            skipped.append(path)
+            continue
+        by_type[rt].append((path, payload, fmt))
+
+    # 2) Upload in order
+    for rt in UPLOAD_ORDER:
+        for path, payload, fmt in by_type[rt]:
+            if fmt == "json":
+                ok, rep = post_json_resource(host, token, payload)
+            elif fmt == "map":
+                ok, rep = post_map_text(host, token, payload)
+            else:
+                ok, rep = False, {"status": 0, "ok": False, "error": "Unknown format"}
+            rep["sourcePath"] = path
+            rep["type"] = rt
+            results.append(rep)
+            if not ok:
+                errors.append(rep)
+
+    # 3) Summary
+    return {
+        "summary": {
+            "host": host,
+            "counts": {t: len(by_type[t]) for t in UPLOAD_ORDER},
+            "uploaded": sum(1 for r in results if r.get("ok")),
+            "failed": len(errors),
+            "skippedFiles": skipped,
+        },
+        "results": results,
+    }
+
+
 def auth_token_from_header(authorization: Optional[str]) -> Optional[str]:
     """
     Accepts 'Authorization: Bearer <token>' or any value.
@@ -570,16 +614,21 @@ def list_targets():
     summary="Install a FHIR IG package by URL (default host)",
 )
 def upload_ig_default(
-    req: UploadIGSimpleBody = Body(..., description="IG location to install"),
+    target: str,
+    req: Optional[UploadIGSimpleBody] = Body(None, description="IG location (if sent in JSON body)"),
+    ig_url: Optional[str] = Query(None, description="IG URL (if passed as query param)"),
     authorization: Optional[str] = Header(None, description="Bearer token forwarded to the FHIR server"),
 ):
     """
     Downloads `package.tgz`, extracts CodeSystem/ValueSet/StructureDefinition/ConceptMap/StructureMap,
     uploads them to the **default** FHIR host (`FHIR_HOST`), and returns a per-file report.
     """
-    host = resolve_target_host(None).rstrip("/")
+    url = ig_url or (req.ig_url if req else None)
+    if not url:
+        raise HTTPException(status_code=400, detail="Missing ig_url (send in JSON body or as query param)")
+    host = resolve_target_host(target).rstrip("/")
     token = auth_token_from_header(authorization) or DEFAULT_FHIR_TOKEN
-    return _upload_ig_core(req.ig_url, host, token)
+    return _upload_ig_core(url, host, token)
 
 # Support both styles: "/{target}/upload_ig" and "/upload_ig/{target}"
 @app.post(
@@ -587,25 +636,48 @@ def upload_ig_default(
     tags=["IG"],
     summary="Install a FHIR IG package by URL (choose host by target name)",
 )
+
+
 @app.post(
     "/upload_ig/{target}",
     tags=["IG"],
-    summary="Install a FHIR IG package by URL (choose host by target name)",
+    summary="Install a FHIR IG package by URL or by uploading package.tgz (multipart)",
 )
-def upload_ig_target(
+async def upload_ig_target(
     target: str,
-    req: UploadIGSimpleBody = Body(..., description="IG location to install"),
+    ig_url_q: Optional[str] = Query(None, alias="ig_url", description="IG base URL or direct package.tgz URL"),
+    ig_url_f: Optional[str] = Form(None, description="IG base URL or direct package.tgz URL (multipart form)"),
+    package: Optional[UploadFile] = File(None, description="Uploaded package.tgz (multipart form)"),
+    body: Optional[dict] = Body(None),
     authorization: Optional[str] = Header(None, description="Bearer token forwarded to the FHIR server"),
 ):
     """
-    Same as `/upload_ig`, but the destination host is selected by **target**:
-    - `fhir` → env `FHIR_HOST`
-    - `matchbox` → env `MATCHBOX_HOST`
-    - any other `{target}` → env `{TARGET}_HOST`
+    Accepts **either**:
+    - `package` file (multipart/form-data) → upload its contents
+    - `ig_url` via query or multipart form → server downloads `/package.tgz`
+    - JSON body `{ "ig_url": "..." }` (fallback)
+
+    Upload order: CodeSystem → ValueSet → StructureDefinition → ConceptMap → StructureMap
     """
     host = resolve_target_host(target).rstrip("/")
     token = auth_token_from_header(authorization) or DEFAULT_FHIR_TOKEN
-    return _upload_ig_core(req.ig_url, host, token)
+
+    # Prefer an uploaded package file if provided
+    if package is not None:
+        data = await package.read()
+        if not data:
+            raise HTTPException(status_code=400, detail="Uploaded 'package' file is empty.")
+        return _upload_ig_core_bytes(data, host, token)
+
+    # Otherwise, resolve ig_url from query, form, or JSON
+    ig_url = ig_url_q or ig_url_f or (body.get("ig_url") if isinstance(body, dict) else None)
+    if not ig_url:
+        raise HTTPException(
+            status_code=422,
+            detail="Provide 'ig_url' as query (?ig_url=...), multipart form field (ig_url), or JSON body {'ig_url':'...'}, or upload 'package' (multipart).",
+        )
+
+    return _upload_ig_core(ig_url, host, token)
 
 @app.post(
     "/validate",
