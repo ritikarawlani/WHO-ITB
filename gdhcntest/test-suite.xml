@@ -14,8 +14,31 @@
         <!-- Define which test suite actor is the System Under Test (SUT). -->
         <gitb:actor id="User">
 			<gitb:name>User</gitb:name>
-			<gitb:desc>User.</gitb:desc>
+			<gitb:desc>User..</gitb:desc>
 		</gitb:actor>
+
+
+        <gitb:actor id="HCertDecoder">
+			<gitb:name>HCert Decoder</gitb:name>
+			<gitb:desc>HCert Decoder.</gitb:desc>
+		</gitb:actor>
+
+        <gitb:actor id="VHLResponder">
+			<gitb:name>VHLResponder</gitb:name>
+			<gitb:desc>VHLResponder.</gitb:desc>
+		</gitb:actor>
+
+
+        <gitb:actor id="FHIRValidator">
+			<gitb:name>FHIR Validator</gitb:name>
+			<gitb:desc>FHIR Validator.</gitb:desc>
+		</gitb:actor>
+
+        <gitb:actor id="SMARTHelper">
+			<gitb:name>SMART helper</gitb:name>
+			<gitb:desc>SMART helper.</gitb:desc>
+		</gitb:actor>
+
 	</actors>
 	<!-- 
 		The test case IDs refer to the IDs of the relevant test cases (see their root element). You can place test cases anywhere you want in the test suite archive
@@ -25,5 +48,6 @@
 		the FHIR client and FHIR server roles. Alternatively these could of course be split into separate test suites but that is not necessary.
 	-->	
 	<testcase id="test-case"/>
+	<testcase id="icvp-test-case"/>
 
 </testsuite>

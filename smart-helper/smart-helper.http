@@ -1,0 +1,12 @@
+@bridge = http://localhost:8000
+@fhir = http://localhost:8087/matchboxv3/fhir
+
+@ig_url = https://example.org/your-ig
+
+### 1) Health check
+GET {{bridge}}/health
+Accept: application/json
+
+###
+GET http://localhost:8000/health
+Accept: application/json

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testcase id="icvp-test-case"
+  xmlns="http://www.gitb.com/tdl/v1/"
+  xmlns:gitb="http://www.gitb.com/core/v1/">
+
+  <metadata>
+    <gitb:name>ICVP: Barcode Image → IPS Bundle</gitb:name>
+    <gitb:description>
+      Upload a barcode image, decode to HC1 and CWT payload, install IGs on Matchbox via SMART Helper,
+      transform inner content using ICVPClaimtoIPS, and validate the result against IPS Bundle profile.
+    </gitb:description>
+    <gitb:version>1.0</gitb:version>
+  </metadata>
+
+  <actors>
+    <gitb:actor id="User" role="SUT"/>
+    <gitb:actor id="HCertDecoder"/>
+    <gitb:actor id="SMARTHelper"/>
+    <gitb:actor id="FHIRValidator"/>
+  </actors>
+
+  <steps>
+
+    <!-- ===================== 1) Upload barcode image and decode to qr_data ===================== -->
+    <interact id="userFileUpload" desc="Upload barcode image (PNG/JPG)">
+      <request desc="File to upload:" name="uploadedFile" inputType="UPLOAD" required="true"/>
+    </interact>
+
+    <!-- Build multipart part named 'image' for /decode/image -->
+    <assign to="imgPart{name}">"image"</assign>
+    <assign to="imgPart{contentType}">"image/png"</assign>
+    <assign to="imgPart{fileName}">"barcode.png"</assign>
+    <assign to="imgPart{content}">$userFileUpload{uploadedFile}</assign>
+    <assign to="parts" append="true">$imgPart</assign>
+    <assign to="reqHeaders{Accept}">"application/json"</assign>
+
+    <send id="decodeImage" desc="Decode QR image → qr_data" handler="HttpMessagingV2" from="User" to="HCertDecoder">
+      <input name="uri">"http://hcert-validator:8080/decode/image"</input>
+      <input name="method">"POST"</input>
+      <input name="parts">$parts</input>
+      <input name="headers">$reqHeaders</input>
+    </send>
+    <verify handler="NumberValidator" desc="Image decode returns HTTP 200">
+      <input name="actualnumber">$decodeImage{response}{status}</input>
+      <input name="expectednumber">"200"</input>
+    </verify>
+
+    <!-- Extract qr_data (HC1:...) -->
+    <process handler="JsonPointerProcessor" operation="process" output="qrData">
+      <input name="content">$decodeImage{response}{body}</input>
+      <input name="pointer">"/qr_data"</input>
+    </process>
+
+    <!-- ===================== 2) Decode HC1 → COSE, PAYLOAD, HCERT ===================== -->
+    <!-- Build {"qr_data":"<HC1...>"} safely -->
+    <assign to="tpl1{qr}">$qrData</assign>
+    <process handler="TemplateProcessor" operation="process" output="qrBody">
+      <input name="syntax">"freemarker"</input>
+      <input name="template">'{"qr_data":"${qr?json_string}"}'</input>
+      <input name="parameters">$tpl1</input>
+    </process>
+
+    <assign to="jsonHeaders{Content-Type}">"application/json"</assign>
+    <send id="decodeHC1" desc="Decode HC1" handler="HttpMessagingV2" from="User" to="HCertDecoder">
+      <input name="uri">"http://hcert-validator:8080/decode/hcert"</input>
+      <input name="method">"POST"</input>
+      <input name="headers">$jsonHeaders</input>
+      <input name="body">$qrBody</input>
+    </send>
+    <verify handler="NumberValidator" desc="HC1 decode returns HTTP 200">
+      <input name="actualnumber">$decodeHC1{response}{status}</input>
+      <input name="expectednumber">"200"</input>
+    </verify>
+
+    <!-- Extract full CWT payload object and the inner content (-260/-6) -->
+    <process handler="JsonPointerProcessor" operation="process" output="cwtPayload">
+      <input name="content">$decodeHC1{response}{body}</input>
+      <input name="pointer">"/payload"</input>
+    </process>
+    <process handler="JsonPointerProcessor" operation="process" output="innerContent">
+      <input name="content">$cwtPayload</input>
+      <input name="pointer">"/-260/-6"</input>
+    </process>
+
+    <!-- ===================== 3) Upload both IGs to Matchbox via SMART Helper ===================== -->
+    <!-- IG #1 -->
+    <assign to="ig1Body">'{"ig_url":"https://build.fhir.org/ig/costateixeira/smart-trust-phw/"}'</assign>
+    <send id="uploadIG1" desc="Upload IG #1 to Matchbox" handler="HttpMessagingV2" from="User" to="SMARTHelper">
+      <input name="uri">"http://smart-helper:8000/upload_ig/matchbox"</input>
+      <input name="method">"POST"</input>
+      <input name="headers">$jsonHeaders</input>
+      <input name="body">$ig1Body</input>
+    </send>
+    <verify handler="NumberValidator" desc="IG #1 upload HTTP 200">
+      <input name="actualnumber">$uploadIG1{response}{status}</input>
+      <input name="expectednumber">"200"</input>
+    </verify>
+
+    <!-- IG #2 (WHO smart-icvp ritika branch) -->
+    <assign to="ig2Body">'{"ig_url":"https://worldhealthorganization.github.io/smart-icvp/branches/ritika"}'</assign>
+    <send id="uploadIG2" desc="Upload IG #2 to Matchbox" handler="HttpMessagingV2" from="User" to="SMARTHelper">
+      <input name="uri">"http://smart-helper:8000/upload_ig/matchbox"</input>
+      <input name="method">"POST"</input>
+      <input name="headers">$jsonHeaders</input>
+      <input name="body">$ig2Body</input>
+    </send>
+    <verify handler="NumberValidator" desc="IG #2 upload HTTP 200">
+      <input name="actualnumber">$uploadIG2{response}{status}</input>
+      <input name="expectednumber">"200"</input>
+    </verify>
+
+    <!-- ===================== 4) Transform inner content with ICVPClaimtoIPS ===================== -->
+    <!-- Send innerContent directly as the request body (JSON object) -->
+    <send id="transform" desc="StructureMap $transform (Matchbox via SMART Helper)" handler="HttpMessagingV2" from="User" to="SMARTHelper">
+      <input name="uri">"http://smart-helper:8000/transform?source=http://smart.who.int/icvp/StructureMap/ICVPClaimtoIPS"</input>
+      <input name="method">"POST"</input>
+      <input name="headers">$jsonHeaders</input>
+      <input name="body">$innerContent</input>
+    </send>
+    <verify handler="NumberValidator" desc="Transform HTTP 200">
+      <input name="actualnumber">$transform{response}{status}</input>
+      <input name="expectednumber">"200"</input>
+    </verify>
+
+    <!-- Extract result Bundle from SMART Helper response: { ok, result, ... } -->
+    <process handler="JsonPointerProcessor" operation="process" output="bundleResult">
+      <input name="content">$transform{response}{body}</input>
+      <input name="pointer">"/result"</input>
+    </process>
+
+    <!-- ===================== 5) Validate IPS Bundle profile ===================== -->
+    <!-- Build body for SMART Helper /validate -->
+    <assign to="tplVal{res}">$bundleResult</assign>
+    <assign to="tplVal{profile}">'http://hl7.org/fhir/uv/ips/StructureDefinition/Bundle-uv-ips'</assign>
+    <process handler="TemplateProcessor" operation="process" output="validateBody">
+      <input name="syntax">"freemarker"</input>
+      <input name="template">'{"resource": ${res}, "profile_url": ${profile}}'</input>
+      <input name="parameters">$tplVal</input>
+    </process>
+
+    <send id="validateIPS" desc="Validate IPS Bundle" handler="HttpMessagingV2" from="User" to="FHIRValidator">
+      <input name="uri">"http://smart-helper:8000/validate"</input>
+      <input name="method">"POST"</input>
+      <input name="headers">$jsonHeaders</input>
+      <input name="body">$validateBody</input>
+    </send>
+    <verify handler="NumberValidator" desc="Validation HTTP 200">
+      <input name="actualnumber">$validateIPS{response}{status}</input>
+      <input name="expectednumber">"200"</input>
+    </verify>
+
+    <!-- Optional: You may parse /issues to assert zero fatal/error, depending on your setup -->
+
+  </steps>
+
+  <output>
+    <success>
+      <default>"Barcode decoded, CWT transformed to IPS Bundle, and validation executed successfully."</default>
+    </success>
+  </output>
+</testcase>

@@ -24,6 +24,9 @@
 	<actors>
 		<!-- Define which test suite actor is the System Under Test (SUT). -->
 		<gitb:actor id="User" role="SUT"/>
+		<gitb:actor id="HCertDecoder"/>
+		<gitb:actor id="VHLResponder"/>
+		<gitb:actor id="FHIRValidator"/>
 	</actors>
 	<steps>
 
@@ -42,23 +45,24 @@
 		<assign to="sendParts" append="true">$imgPart</assign>
 		<assign to="reqHeaders{Accept}">"application/json"</assign>
 <!-- 1.3 POST to http://hcert-validator:8080/decode/image with parts -->
-		<send id="img_to_content" desc="Decode QR image" handler="HttpMessagingV2" from="User" to="User" >
+		<send id="img_to_content" desc="Decode QR image" handler="HttpMessagingV2" from="User" to="HCertDecoder" >
 			<input name="uri">"http://hcert-validator:8080/decode/image"</input>
 			<input name="method">"POST"</input>
 			<input name="parts">$sendParts</input>
 			<input name="headers">$reqHeaders</input>
 		</send>
-<!-- 1.4 Extract 'raw_data' from JSON response -->
+
+
+<!-- ===================== 2 DECODE HC1 -> cose, payload, hcert ===================== -->
+
+<!-- 2.1 Extract 'raw_data' from JSON response -->
 		<process handler="JsonPointerProcessor" operation="process" output="raw_data_value">
 			<input name="content">$img_to_content{response}{body}</input>
 			<input name="pointer">"/qr_data"</input>
 		</process>
 		<log>$raw_data_value</log>
 
-
-<!-- ===================== 2 DECODE HC1 -> cose, payload, hcert ===================== -->
-<!-- Build {"qr_data":"<HC1...>"} using a template (JSON-safe) -->
-<!-- Consider changing the API to raw_data or the previous one to qr_data for consistency -->
+<!-- 2.2. Build {"qr_data":"<HC1...>"} using a template (JSON-safe) -->
 		<assign to="tplParams{value}">$raw_data_value</assign>
 		<process handler="TemplateProcessor" operation="process" output="requestJson">
 			<input name="syntax">"freemarker"</input>
@@ -72,7 +76,7 @@
 
 <!-- POST to /decode/hcert -->
 		<assign to="hc1DecodeHeaders{Content-Type}">"application/json"</assign>
-		<send id="decode_hc1" desc="Decode HC1" from="User" to="User" handler="HttpMessagingV2">
+		<send id="decode_hc1" desc="Decode HC1" from="User" to="HCertDecoder" handler="HttpMessagingV2">
 			<input name="uri">"http://hcert-validator:8080/decode/hcert"</input>
 			<input name="method">"POST"</input>
 			<input name="body">$requestJson</input>
@@ -104,7 +108,7 @@
 <!-- 3) POST to /extract/metadata -->
 		<assign to="headers{Content-Type}">"application/json"</assign>
 		<assign to="extractUrl">"http://hcert-validator:8080/extract/metadata"</assign>
-		<send id="extractMeta" desc="Extract metadata" handler="HttpMessagingV2" from="User" to="User" >
+		<send id="extractMeta" desc="Extract metadata" handler="HttpMessagingV2" from="User" to="HCertDecoder" >
 			<input name="uri">$extractUrl</input>
 			<input name="method">"POST"</input>
 			<input name="headers">$headers</input>
@@ -137,7 +141,7 @@
 <!-- POST /extract/reference (returns short-link URL) -->
 		<assign to="headers{Content-Type}">"application/json"</assign>
 		<assign to="refUrl">"http://hcert-validator:8080/extract/reference"</assign>
-		<send id="extractRef" desc="Extract reference" handler="HttpMessagingV2" from="User" to="User">
+		<send id="extractRef" desc="Extract reference" handler="HttpMessagingV2" from="User" to="HCertDecoder">
 			<input name="uri">$refUrl</input>
 			<input name="method">"POST"</input>
 			<input name="headers">$headers</input>
@@ -175,7 +179,7 @@
 		<!-- <log>"Auth Body:"</log><log>$authBody</log> -->
 <!-- POST to /shlink/authorize -->
 		<assign to="headers{Content-Type}">"application/json"</assign>
-		<send id="authorizeLink" desc="Authorize short link" handler="HttpMessagingV2" from="User" to="User">
+		<send id="authorizeLink" desc="Authorize short link" handler="HttpMessagingV2" from="User" to="VHLResponder">
 			<input name="uri">"http://hcert-validator:8080/shlink/authorize"</input>
 			<input name="method">"POST"</input>
 			<input name="headers">$headers</input>
@@ -211,7 +215,7 @@
 <!-- POST /shlink/fetch-fhir -->		
         <assign to="headers{Content-Type}">"application/json"</assign>
 		<assign to="fetchUrl">"http://hcert-validator:8080/shlink/fetch-fhir"</assign>
-		<send id="fetchFhir" desc="Fetch FHIR" handler="HttpMessagingV2" from="User" to="User">
+		<send id="fetchFhir" desc="Fetch FHIR" handler="HttpMessagingV2" from="User" to="VHLResponder">
 			<input name="uri">$fetchUrl</input>
 			<input name="method">"POST"</input>
 			<input name="headers">$headers</input>
@@ -250,7 +254,7 @@
 		<assign to="params{profile}">$targetProfileUrl</assign>
 
 <!-- POST $validate with body = $fhirResource (JSON object) -->
-		<send id="validationResult" desc="FHIR $validate" handler="HttpMessagingV2" from="User" to="User">
+		<send id="validationResult" desc="FHIR $validate" handler="HttpMessagingV2" from="User" to="FHIRValidator">
 			<input name="uri">$base || "/Bundle/$validate"</input>
 			<input name="method">"POST"</input>
 			<input name="headers">$headers</input>
