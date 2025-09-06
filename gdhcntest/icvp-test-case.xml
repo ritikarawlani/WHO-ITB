@@ -119,7 +119,7 @@
 
     <send id="uploadIG2" desc="Upload IG #2 to Matchbox"
           handler="HttpMessagingV2" from="User" to="SMARTHelper">
-      <input name="uri">"http://smart-helper:8000/upload_ig/matchbox"</input>
+      <input name="uri">"http://smart-helper:8000/echo"</input>
       <input name="method">"POST"</input>
       <input name="headers">$igHeaders</input>
       <input name="body">$igBody2</input>

@@ -41,6 +41,8 @@ services:
     volumes:
       - ./config/fhir/custom:/custom
       - ./config/fhir/apps:/apps
+    ports:
+      - "8080:8080"   # host access (optional)      
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/fhir/metadata >/dev/null || exit 1"]
       interval: 15s

@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from fastapi import FastAPI, Body, HTTPException, Header, Query, Request
-from fastapi.responses import PlainTextResponse, HTMLResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, HTMLResponse
 from pydantic import BaseModel, Field
 import yaml  # for /openapi.yaml
 
@@ -521,6 +521,32 @@ async def _log_incoming(request: Request, call_next):
 def health():
     """Return a simple liveness payload and the configured default FHIR host."""
     return {"status": "ok", "hostDefault": DEFAULT_FHIR_HOST}
+
+import logging
+
+@app.post("/echo", tags=["Utils"], summary="Echo back headers and body")
+async def echo_endpoint(request: Request):
+    """Echo back headers and body exactly as received (for debugging ITB requests)."""
+    body = await request.body()
+    try:
+        parsed = json.loads(body)
+    except Exception:
+        parsed = None
+
+    # Log to console
+    logging.info("=== /echo called ===")
+    logging.info("Headers: %s", dict(request.headers))
+    logging.info("Raw body: %s", body.decode("utf-8", errors="replace"))
+    if parsed is not None:
+        logging.info("Parsed JSON: %s", json.dumps(parsed, indent=2))
+    else:
+        logging.info("Body could not be parsed as JSON")
+
+    return {
+        "headers": dict(request.headers),
+        "raw_body": body.decode("utf-8", errors="replace"),
+        "json_body": parsed
+    }
 
 @app.get("/targets", tags=["Utils"], summary="List available upload targets")
 def list_targets():
