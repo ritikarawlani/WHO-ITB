@@ -12,9 +12,22 @@ from fastapi.responses import PlainTextResponse, HTMLResponse
 from pydantic import BaseModel, Field
 import yaml  # for /openapi.yaml
 
+import logging
+import base64
+
+LOG_LEVEL = os.getenv("SMART_HELPER_LOG", "INFO").upper()
+LOG_BODY_LIMIT = int(os.getenv("SMART_HELPER_LOG_BODY_LIMIT", "4000"))  # bytes shown
+
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format="%(asctime)s %(levelname)s %(message)s",
+)
+log = logging.getLogger("smart-helper")
+
+
 # ---------- Config ----------
 DEFAULT_FHIR_HOST = os.getenv("FHIR_HOST", "http://fhirserver:8080/fhir")          # plain FHIR (default)
-DEFAULT_MATCHBOX_HOST = os.getenv("MATCHBOX_HOST", "http://matchbox:8080/fhir")    # matchbox
+DEFAULT_MATCHBOX_HOST = os.getenv("MATCHBOX_HOST", "http://matchbox:8080/matchboxv3/fhir")    # matchbox
 
 DEFAULT_FHIR_TOKEN = os.getenv("FHIR_TOKEN")  # optional
 DEFAULT_TIMEOUT = int(os.getenv("FHIR_TIMEOUT", "90"))
@@ -88,8 +101,45 @@ def fhir_request(method: str, url: str, token: Optional[str], *,
                  params: Optional[Dict[str, Any]] = None) -> requests.Response:
     """Light wrapper over requests.request that sets FHIR headers and forwards query params."""
     headers = hdrs(accept=accept, content_type=content_type, token=token)
-    resp = requests.request(method, url, headers=headers, data=data, json=json_body, timeout=timeout, params=params)
+
+    if LOG_LEVEL in ("DEBUG", "TRACE"):
+        # Show what we’re about to send
+        qp = ""
+        if params:
+            try:
+                # best-effort preview, requests will encode properly
+                qp = "?" + "&".join([f"{k}={v}" for k, v in params.items()])
+            except Exception:
+                qp = "?" + str(params)
+        log.debug("OUT %s %s%s  accept=%s  content-type=%s", method, url, qp, accept, content_type)
+        if json_body is not None:
+            preview = json.dumps(json_body)[:LOG_BODY_LIMIT]
+            log.debug("OUT json (snip):\n%s%s", preview, "…(snip)" if len(preview) == LOG_BODY_LIMIT else "")
+        elif data is not None:
+            log.debug("OUT data bytes=%s (snip):\n%s", len(data), _snip(data))
+        else:
+            log.debug("OUT (no body)")
+
+    resp = requests.request(
+        method, url, headers=headers, data=data, json=json_body, timeout=timeout, params=params
+    )
+
+    if LOG_LEVEL in ("DEBUG", "TRACE"):
+        log.debug("IN<- %s %s  content-type=%s", resp.status_code, url, resp.headers.get("content-type"))
+        # Try JSON first, then bytes
+        b = None
+        try:
+            j = resp.json()
+            log.debug("IN<- json keys: %s", list(j.keys())[:12])
+        except Exception:
+            try:
+                b = resp.content or b""
+            except Exception:
+                b = b""
+            if b:
+                log.debug("IN<- body (snip):\n%s", _snip(b))
     return resp
+
 
 def is_success(resp: requests.Response) -> bool:
     return 200 <= resp.status_code < 300
@@ -99,6 +149,20 @@ def safe_json(resp: requests.Response) -> Optional[Dict[str, Any]]:
         return resp.json()
     except Exception:
         return None
+
+
+def _snip(b: bytes, limit: int = LOG_BODY_LIMIT) -> str:
+    try:
+        s = b[:limit].decode("utf-8", errors="replace")
+    except Exception:
+        s = str(b[:limit])
+    if len(b) > limit:
+        s += f"\n…(snipped {len(b) - limit} bytes)"
+    return s
+
+def _ctype_is_json(ctype: str) -> bool:
+    return (ctype or "").lower().startswith("application/json") or "fhir+json" in (ctype or "").lower()
+
 
 # Posting order helps with dependencies
 UPLOAD_ORDER = ["CodeSystem", "ValueSet", "StructureDefinition", "ConceptMap", "StructureMap"]
@@ -433,6 +497,25 @@ def home() -> HTMLResponse:
 """
     return HTMLResponse(html)
 
+
+
+@app.middleware("http")
+async def _log_incoming(request: Request, call_next):
+    if LOG_LEVEL in ("DEBUG", "TRACE"):
+        try:
+            body = await request.body()
+        except Exception:
+            body = b""
+        log.debug(
+            "IN %s %s  content-type=%s  len=%s",
+            request.method, request.url.path + ("?" + request.url.query if request.url.query else ""),
+            request.headers.get("content-type"), len(body),
+        )
+        if body:
+            log.debug("IN body (snip):\n%s", _snip(body))
+    return await call_next(request)
+
+
 # ---------- Endpoints ----------
 @app.get("/health", tags=["Utils"], summary="Liveness probe")
 def health():
@@ -540,6 +623,7 @@ async def transform_simple(
     request: Request,
     source: str = Query(..., description="StructureMap canonical URL to use as `source`."),
     validateProfile: Optional[str] = Query(None, description="Optional profile canonical URL to validate the result."),
+    debug: Optional[int] = Query(0, description="If 1, include request echo and upstream raw in response"),
 ):
     """
     Forward the raw body (JSON or XML) to Matchbox's `/StructureMap/$transform?source=...`.
@@ -553,14 +637,50 @@ async def transform_simple(
     token = DEFAULT_FHIR_TOKEN
 
     body = await request.body()
-    content_type = request.headers.get("content-type", "application/fhir+json")
+    ctype_in = request.headers.get("content-type", "application/fhir+json")
+    clen = len(body)
+
+    # Debug logs
+    log.info("TRANSFORM in: len=%s content-type=%s source=%s", clen, ctype_in, source)
+    if LOG_LEVEL in ("DEBUG", "TRACE"):
+        log.debug("TRANSFORM in body (snip):\n%s", _snip(body))
+
+    if not body:
+        # Fail fast with helpful message
+        raise HTTPException(status_code=400, detail={
+            "error": "Empty request body for /transform",
+            "hint": "Ensure ITB sends a raw JSON string as body; see TemplateProcessor '${obj}' trick.",
+            "receivedContentType": ctype_in
+        })
 
     # 1) Transform
-    resp = fhir_transform_raw(host, token, source, body, content_type)
+    resp = fhir_transform_raw(host, token, source, body, ctype_in)
     ok = is_success(resp)
-    result_body = safe_json(resp) if "json" in (resp.headers.get("content-type") or "") else {"text": resp.text[:2000]}
+
+    # Decode upstream (prefer JSON)
+    result_body = safe_json(resp)
+    if result_body is None:
+        # If not JSON, pass short text to help debugging
+        result_body = {"text": (resp.text or "")[:LOG_BODY_LIMIT]}
     if not ok:
-        raise HTTPException(status_code=resp.status_code, detail=result_body)
+        detail = {"upstreamStatus": resp.status_code, "upstream": result_body}
+        # Some deployments wrap OO as base64 -> add friendly hint
+        if isinstance(result_body, dict) and result_body.get("detail") and isinstance(result_body["detail"], str):
+            try:
+                decoded = base64.b64decode(result_body["detail"]).decode("utf-8", errors="replace")
+                detail["detailDecoded"] = decoded[:LOG_BODY_LIMIT]
+            except Exception:
+                pass
+        # Also attach what we sent (short)
+        if debug:
+            detail["echo"] = {
+                "contentTypeIn": ctype_in,
+                "lenIn": clen,
+                "bodySnip": _snip(body),
+                "to": host + "/StructureMap/$transform",
+                "params": {"source": source}
+            }
+        raise HTTPException(status_code=502, detail=detail)
 
     out: Dict[str, Any] = {"ok": True, "result": result_body}
 
@@ -570,13 +690,12 @@ async def transform_simple(
             vresp = fhir_validate(host, token, result_body, validateProfile, include_warnings=False)
             out["validation"] = vresp
         else:
-            # If transform returned XML text, validate it as XML
             vresp_raw = fhir_validate_raw(
                 host, token, resp.content,
                 resp.headers.get("content-type", "application/fhir+xml"),
                 validateProfile
             )
-            vbody = safe_json(vresp_raw) or {"text": vresp_raw.text[:2000]}
+            vbody = safe_json(vresp_raw) or {"text": (vresp_raw.text or "")[:LOG_BODY_LIMIT]}
             issues = outcome_errors(vbody) if vbody.get("resourceType") == "OperationOutcome" else []
             out["validation"] = {
                 "endpoint": f"{host.rstrip('/')}/$validate?profile={validateProfile}",
@@ -586,7 +705,26 @@ async def transform_simple(
                 "raw": vbody
             }
 
+    if debug:
+        out["echo"] = {
+            "contentTypeIn": ctype_in,
+            "lenIn": clen,
+            "bodySnip": _snip(body),
+            "target": host + "/StructureMap/$transform",
+            "params": {"source": source},
+        }
     return out
+
+
+@app.post("/debug/echo", include_in_schema=False)
+async def debug_echo(request: Request):
+    body = await request.body()
+    return {
+        "receivedContentType": request.headers.get("content-type"),
+        "receivedLength": len(body),
+        "bodySnip": _snip(body),
+        "asText": body.decode("utf-8", errors="replace")[:LOG_BODY_LIMIT],
+    }
 
 @app.post(
     "/extract",

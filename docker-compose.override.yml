@@ -78,8 +78,8 @@ services:
       POSTGRES_USER: 'matchbox'
       POSTGRES_PASSWORD: 'matchbox'
       SPRING_CONFIG_LOCATION: 'file:///config/application.yml'
-    volumes:
-      - ./matchbox/data:/var/lib/postgresql/data
+    # volumes:
+    #   - ./matchbox/data:/var/lib/postgresql/data
     # networks: [backend]
 
   # smart-helper (this app)
@@ -90,7 +90,9 @@ services:
     container_name: smart-helper
     environment:
       - FHIR_HOST=http://fhir-server:8080/fhir     # <-- use the service name
-      - MATCHBOX_HOST=http://matchbox:8080/fhir
+      - MATCHBOX_HOST=http://matchbox:8080/matchboxv3/fhir
+      - SMART_HELPER_LOG=DEBUG
+      - SMART_HELPER_LOG_BODY_LIMIT=8000      
       # - FHIR_TOKEN=...                            # optional
       - FHIR_TIMEOUT=90
     ports:

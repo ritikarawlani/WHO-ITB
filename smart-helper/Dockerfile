@@ -18,7 +18,7 @@ COPY main.py ./main.py
 
 # default envs (can be overridden by docker-compose)
 ENV FHIR_HOST="http://fhirserver:8080/fhir" \
-    MATCHBOX_HOST="http://matchbox:8080/fhir" \
+    MATCHBOX_HOST="http://matchbox:8080/matchboxv3/fhir" \
     FHIR_TIMEOUT=90
 
 EXPOSE 8000

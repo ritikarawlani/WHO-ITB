@@ -83,53 +83,83 @@
     </process>
 
     <!-- ===================== 3) Upload both IGs to Matchbox via SMART Helper ===================== -->
-    <!-- IG #1 -->
-    <assign to="ig1Body">'{"ig_url":"https://build.fhir.org/ig/costateixeira/smart-trust-phw/"}'</assign>
-    <send id="uploadIG1" desc="Upload IG #1 to Matchbox" handler="HttpMessagingV2" from="User" to="SMARTHelper">
-      <input name="uri">"http://smart-helper:8000/upload_ig/matchbox"</input>
-      <input name="method">"POST"</input>
-      <input name="headers">$jsonHeaders</input>
-      <input name="body">$ig1Body</input>
-    </send>
-    <verify handler="NumberValidator" desc="IG #1 upload HTTP 200">
-      <input name="actualnumber">$uploadIG1{response}{status}</input>
-      <input name="expectednumber">"200"</input>
-    </verify>
+    <!-- Headers for IG upload -->
+    <assign to="igHeaders{Content-Type}">"application/json"</assign>
+    <assign to="igHeaders{Accept}">"application/json"</assign>
 
-    <!-- IG #2 (WHO smart-icvp ritika branch) -->
-    <assign to="ig2Body">'{"ig_url":"https://worldhealthorganization.github.io/smart-icvp/branches/ritika"}'</assign>
-    <send id="uploadIG2" desc="Upload IG #2 to Matchbox" handler="HttpMessagingV2" from="User" to="SMARTHelper">
+    <!-- IG #1 -->
+    <assign to="tplIg1{ig_url}">'https://build.fhir.org/ig/costateixeira/smart-trust-phw/'</assign>
+    <process handler="TemplateProcessor" operation="process" output="igBody1">
+      <input name="syntax">"freemarker"</input>
+      <input name="template">'{"ig_url":${ig_url?json_string}}'</input>
+      <input name="parameters">$tplIg1</input>
+    </process>
+    <send id="uploadIG1" desc="Upload IG #1 to Matchbox"
+          handler="HttpMessagingV2" from="User" to="SMARTHelper">
       <input name="uri">"http://smart-helper:8000/upload_ig/matchbox"</input>
       <input name="method">"POST"</input>
-      <input name="headers">$jsonHeaders</input>
-      <input name="body">$ig2Body</input>
+      <input name="headers">$igHeaders</input>
+      <input name="body">$igBody1</input>
     </send>
-    <verify handler="NumberValidator" desc="IG #2 upload HTTP 200">
-      <input name="actualnumber">$uploadIG2{response}{status}</input>
-      <input name="expectednumber">"200"</input>
-    </verify>
+
+    <!-- IG #2 -->
+    <assign to="tplIg2{ig_url}">'https://worldhealthorganization.github.io/smart-icvp/branches/ritika'</assign>
+    <process handler="TemplateProcessor" operation="process" output="igBody2">
+      <input name="syntax">"freemarker"</input>
+      <input name="template">'{"ig_url":${ig_url?json_string}}'</input>
+      <input name="parameters">$tplIg2</input>
+    </process>
+    <send id="uploadIG2" desc="Upload IG #2 to Matchbox"
+          handler="HttpMessagingV2" from="User" to="SMARTHelper">
+      <input name="uri">"http://smart-helper:8000/upload_ig/matchbox"</input>
+      <input name="method">"POST"</input>
+      <input name="headers">$igHeaders</input>
+      <input name="body">$igBody2</input>
+    </send>
 
     <!-- ===================== 4) Transform inner content with ICVPClaimtoIPS ===================== -->
-    <!-- Send innerContent directly as the request body (JSON object) -->
-    <send id="transform" desc="StructureMap $transform (Matchbox via SMART Helper)" handler="HttpMessagingV2" from="User" to="SMARTHelper">
-      <input name="uri">"http://smart-helper:8000/transform?source=http://smart.who.int/icvp/StructureMap/ICVPClaimtoIPS"</input>
-      <input name="method">"POST"</input>
-      <input name="headers">$jsonHeaders</input>
-      <input name="body">$innerContent</input>
-    </send>
+<!-- Render the innerContent JSON to a raw string payload -->
+<assign to="tplIn{obj}">$innerContent</assign>
+
+<process handler="TemplateProcessor" operation="process" output="transformBody">
+  <input name="syntax">"freemarker"</input>
+  <!-- IMPORTANT: template must be a STRING literal so TDL doesn't try to parse ${...} -->
+  <input name="template">'${obj}'</input>
+  <input name="parameters">$tplIn</input>
+</process>
+
+<!-- sanity log -->
+<log>"-- Transform body (raw) --"</log>
+<log>$transformBody</log>
+<log>"-- End transform body --"</log>
+
+<!-- Send -->
+<assign to="xformHeaders{Content-Type}">"application/fhir+json"</assign>
+<assign to="xformHeaders{Accept}">"application/json"</assign>
+<assign to="q{source}">'http://smart.who.int/icvp/StructureMap/ICVPClaimtoIPS'</assign>
+
+<send id="doTransform" desc="StructureMap $transform (SMART Helper)"
+      handler="HttpMessagingV2" from="User" to="SMARTHelper">
+  <input name="uri">"http://smart-helper:8000/transform"</input>
+  <input name="method">"POST"</input>
+  <input name="headers">$xformHeaders</input>
+  <input name="parameters">$q</input>
+  <input name="body">$transformBody</input>
+</send>
+
+    <!-- Guard: HTTP 200 and JSON before parsing -->
     <verify handler="NumberValidator" desc="Transform HTTP 200">
-      <input name="actualnumber">$transform{response}{status}</input>
+      <input name="actualnumber">$doTransform{response}{status}</input>
       <input name="expectednumber">"200"</input>
     </verify>
 
     <!-- Extract result Bundle from SMART Helper response: { ok, result, ... } -->
     <process handler="JsonPointerProcessor" operation="process" output="bundleResult">
-      <input name="content">$transform{response}{body}</input>
+      <input name="content">$doTransform{response}{body}</input>
       <input name="pointer">"/result"</input>
     </process>
 
     <!-- ===================== 5) Validate IPS Bundle profile ===================== -->
-    <!-- Build body for SMART Helper /validate -->
     <assign to="tplVal{res}">$bundleResult</assign>
     <assign to="tplVal{profile}">'http://hl7.org/fhir/uv/ips/StructureDefinition/Bundle-uv-ips'</assign>
     <process handler="TemplateProcessor" operation="process" output="validateBody">
@@ -138,7 +168,7 @@
       <input name="parameters">$tplVal</input>
     </process>
 
-    <send id="validateIPS" desc="Validate IPS Bundle" handler="HttpMessagingV2" from="User" to="FHIRValidator">
+    <send id="validateIPS" desc="Validate IPS Bundle (via SMART Helper)" handler="HttpMessagingV2" from="User" to="FHIRValidator">
       <input name="uri">"http://smart-helper:8000/validate"</input>
       <input name="method">"POST"</input>
       <input name="headers">$jsonHeaders</input>
@@ -148,8 +178,6 @@
       <input name="actualnumber">$validateIPS{response}{status}</input>
       <input name="expectednumber">"200"</input>
     </verify>
-
-    <!-- Optional: You may parse /issues to assert zero fatal/error, depending on your setup -->
 
   </steps>
 
