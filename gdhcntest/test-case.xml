@@ -214,6 +214,7 @@
 		
 <!-- POST /shlink/fetch-fhir -->		
         <assign to="headers{Content-Type}">"application/json"</assign>
+		<assign to="headers{Accept}">"application/fhir+json"</assign>		
 		<assign to="fetchUrl">"http://hcert-validator:8080/shlink/fetch-fhir"</assign>
 		<send id="fetchFhir" desc="Fetch FHIR" handler="HttpMessagingV2" from="User" to="VHLResponder">
 			<input name="uri">$fetchUrl</input>

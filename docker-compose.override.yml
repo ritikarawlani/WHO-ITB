@@ -78,8 +78,8 @@ services:
       POSTGRES_USER: 'matchbox'
       POSTGRES_PASSWORD: 'matchbox'
       SPRING_CONFIG_LOCATION: 'file:///config/application.yml'
-    # volumes:
-    #   - ./matchbox/data:/var/lib/postgresql/data
+    volumes:
+      - ./matchbox/data:/var/lib/postgresql/data
     # networks: [backend]
 
   # smart-helper (this app)

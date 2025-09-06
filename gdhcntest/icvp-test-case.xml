@@ -32,6 +32,8 @@
     <assign to="imgPart{fileName}">"barcode.png"</assign>
     <assign to="imgPart{content}">$userFileUpload{uploadedFile}</assign>
     <assign to="parts" append="true">$imgPart</assign>
+
+    <!-- Ask for JSON so ITB parses response as JSON (not base64) -->
     <assign to="reqHeaders{Accept}">"application/json"</assign>
 
     <send id="decodeImage" desc="Decode QR image → qr_data" handler="HttpMessagingV2" from="User" to="HCertDecoder">
@@ -40,6 +42,7 @@
       <input name="parts">$parts</input>
       <input name="headers">$reqHeaders</input>
     </send>
+
     <verify handler="NumberValidator" desc="Image decode returns HTTP 200">
       <input name="actualnumber">$decodeImage{response}{status}</input>
       <input name="expectednumber">"200"</input>
@@ -61,12 +64,15 @@
     </process>
 
     <assign to="jsonHeaders{Content-Type}">"application/json"</assign>
+    <assign to="jsonHeaders{Accept}">"application/json"</assign>
+
     <send id="decodeHC1" desc="Decode HC1" handler="HttpMessagingV2" from="User" to="HCertDecoder">
       <input name="uri">"http://hcert-validator:8080/decode/hcert"</input>
       <input name="method">"POST"</input>
       <input name="headers">$jsonHeaders</input>
       <input name="body">$qrBody</input>
     </send>
+
     <verify handler="NumberValidator" desc="HC1 decode returns HTTP 200">
       <input name="actualnumber">$decodeHC1{response}{status}</input>
       <input name="expectednumber">"200"</input>
@@ -77,13 +83,13 @@
       <input name="content">$decodeHC1{response}{body}</input>
       <input name="pointer">"/payload"</input>
     </process>
+
     <process handler="JsonPointerProcessor" operation="process" output="innerContent">
       <input name="content">$cwtPayload</input>
       <input name="pointer">"/-260/-6"</input>
     </process>
 
     <!-- ===================== 3) Upload both IGs to Matchbox via SMART Helper ===================== -->
-    <!-- Headers for IG upload -->
     <assign to="igHeaders{Content-Type}">"application/json"</assign>
     <assign to="igHeaders{Accept}">"application/json"</assign>
 
@@ -94,6 +100,7 @@
       <input name="template">'{"ig_url":${ig_url?json_string}}'</input>
       <input name="parameters">$tplIg1</input>
     </process>
+
     <send id="uploadIG1" desc="Upload IG #1 to Matchbox"
           handler="HttpMessagingV2" from="User" to="SMARTHelper">
       <input name="uri">"http://smart-helper:8000/upload_ig/matchbox"</input>
@@ -109,6 +116,7 @@
       <input name="template">'{"ig_url":${ig_url?json_string}}'</input>
       <input name="parameters">$tplIg2</input>
     </process>
+
     <send id="uploadIG2" desc="Upload IG #2 to Matchbox"
           handler="HttpMessagingV2" from="User" to="SMARTHelper">
       <input name="uri">"http://smart-helper:8000/upload_ig/matchbox"</input>
@@ -118,36 +126,35 @@
     </send>
 
     <!-- ===================== 4) Transform inner content with ICVPClaimtoIPS ===================== -->
-<!-- Render the innerContent JSON to a raw string payload -->
-<assign to="tplIn{obj}">$innerContent</assign>
+    <!-- Option A: Use dynamic innerContent (uncomment to use live content) -->
+    <!--
+    <assign to="tplIn{obj}">$innerContent</assign>
+    <process handler="TemplateProcessor" operation="process" output="transformBody">
+      <input name="syntax">"freemarker"</input>
+      <input name="template">'${obj}'</input>
+      <input name="parameters">$tplIn</input>
+    </process>
+    -->
 
-<process handler="TemplateProcessor" operation="process" output="transformBody">
-  <input name="syntax">"freemarker"</input>
-  <!-- IMPORTANT: template must be a STRING literal so TDL doesn't try to parse ${...} -->
-  <input name="template">'${obj}'</input>
-  <input name="parameters">$tplIn</input>
-</process>
+    <!-- Option B: Hard-coded JSON body (kept for stability while debugging) -->
+    <assign to="transformBody">
+'{"dob":"1994-10-13","gn":"Parent/Antonio Rojas","n":"Cristina Rodriguez","ndt":"NI","nid":"126008-7","ntl":"CHL","s":"male","v":{"bo":"A1234","cn":"Juan Castro","dt":"2020-11-15","is":"MINSALUD","vle":"2025-11-15","vls":"2020-11-15","vp":"YellowFeverProductd2c75a15ed309658b3968519ddb31690"}}'
+    </assign>
 
-<!-- sanity log -->
-<log>"-- Transform body (raw) --"</log>
-<log>$transformBody</log>
-<log>"-- End transform body --"</log>
+    <!-- Send transform -->
+    <assign to="xformHeaders{Content-Type}">"application/fhir+json"</assign>
+    <assign to="xformHeaders{Accept}">"application/json"</assign>
+    <assign to="q{source}">'http://smart.who.int/icvp/StructureMap/ICVPClaimtoIPS'</assign>
 
-<!-- Send -->
-<assign to="xformHeaders{Content-Type}">"application/fhir+json"</assign>
-<assign to="xformHeaders{Accept}">"application/json"</assign>
-<assign to="q{source}">'http://smart.who.int/icvp/StructureMap/ICVPClaimtoIPS'</assign>
+    <send id="doTransform" desc="StructureMap $transform (SMART Helper)"
+          handler="HttpMessagingV2" from="User" to="SMARTHelper">
+      <input name="uri">"http://smart-helper:8000/transform"</input>
+      <input name="method">"POST"</input>
+      <input name="headers">$xformHeaders</input>
+      <input name="parameters">$q</input> <!-- lets handler URL-encode -->
+      <input name="body">$transformBody</input>
+    </send>
 
-<send id="doTransform" desc="StructureMap $transform (SMART Helper)"
-      handler="HttpMessagingV2" from="User" to="SMARTHelper">
-  <input name="uri">"http://smart-helper:8000/transform"</input>
-  <input name="method">"POST"</input>
-  <input name="headers">$xformHeaders</input>
-  <input name="parameters">$q</input>
-  <input name="body">$transformBody</input>
-</send>
-
-    <!-- Guard: HTTP 200 and JSON before parsing -->
     <verify handler="NumberValidator" desc="Transform HTTP 200">
       <input name="actualnumber">$doTransform{response}{status}</input>
       <input name="expectednumber">"200"</input>
@@ -174,6 +181,7 @@
       <input name="headers">$jsonHeaders</input>
       <input name="body">$validateBody</input>
     </send>
+
     <verify handler="NumberValidator" desc="Validation HTTP 200">
       <input name="actualnumber">$validateIPS{response}{status}</input>
       <input name="expectednumber">"200"</input>
