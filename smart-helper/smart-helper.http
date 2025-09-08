@@ -15,20 +15,19 @@ GET http://localhost:8000/docs
 
 
 ### Simplified IG upload
-POST http://localhost:8000/echo
+POST http://localhost:8000/upload_ig 
 Content-Type: application/json
 
-{"ig_url":"https://build.fhir.org/ig/costateixeira/smart-trust-phw/"}
+{"ig_url":"https://build.fhir.org/ig/costateixeira/smart-trust-phw/" , "host": "http://matchbox:8080/matchboxv3/fhir"}
+
 
 
 ### Simplified IG upload
-POST http://localhost:8000/fhir/upload_ig
+POST http://localhost:8000/upload_ig
 Content-Type: application/json
 
-{ "ig_url": "https://build.fhir.org/ig/WorldHealthOrganization/smart-icvp/branches/ritika" }
+{ "ig_url": "https://build.fhir.org/ig/WorldHealthOrganization/smart-icvp/branches/ritika" , "host": "http://matchbox:8080/matchboxv3/fhir"}
 
-###
-POST http://localhost:8000/upload_ig/matchbox?ig_url=https://worldhealthorganization.github.io/smart-icvp/branches/ritika
 
 ###
 # @name transform
@@ -63,3 +62,17 @@ Content-Type: application/fhir+json
 
 {{transform.response.body.result}}
 
+###
+
+POST http://localhost:8000/validate
+Content-Type: application/json
+
+{
+  "resource": {{transform.response.body.result}},
+  "profile_url": "http://hl7.org/fhir/uv/ips/StructureDefinition/Bundle-uv-ips",
+  "host": "http://fhir-server:8080/fhir" 
+}
+
+
+###
+GET http://localhost:8000/targets

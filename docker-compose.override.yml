@@ -40,7 +40,6 @@ services:
       - hapi.fhir.ig_runtime_upload_enabled=true
       - hapi.fhir.custom_content_path=/custom
       - hapi.fhir.app_content_path=/apps
-      - hapi.fhir.ig_runtime_upload_enabled=true
     volumes:
       - ./config/fhir/custom:/custom
       - ./config/fhir/apps:/apps

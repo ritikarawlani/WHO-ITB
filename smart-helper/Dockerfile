@@ -22,4 +22,8 @@ ENV FHIR_HOST="http://fhirserver:8080/fhir" \
     FHIR_TIMEOUT=90
 
 EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# In your Dockerfile, replace uvicorn with hypercorn
+RUN pip install hypercorn
+
+# Start command becomes:
+CMD ["hypercorn", "main:app", "--bind", "0.0.0.0:8000", "--access-log", "-"]

@@ -7,11 +7,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
-from fastapi import FastAPI, Body, HTTPException, Header, Query, Request, Form, Header, File, UploadFile, Form
+from fastapi import FastAPI, Body, HTTPException, Header, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, HTMLResponse
 from pydantic import BaseModel, Field
 import yaml  # for /openapi.yaml
-
 
 import logging
 import base64
@@ -24,7 +23,6 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
 )
 log = logging.getLogger("smart-helper")
-
 
 # ---------- Config ----------
 DEFAULT_FHIR_HOST = os.getenv("FHIR_HOST", "http://fhirserver:8080/fhir")          # plain FHIR (default)
@@ -96,7 +94,7 @@ def outcome_errors(oo: Dict[str, Any]) -> List[Dict[str, Any]]:
 def fhir_request(method: str, url: str, token: Optional[str], *,
                  data: Optional[bytes] = None,
                  json_body: Optional[Dict[str, Any]] = None,
-                 accept: str = "application/fhir+json",
+                 accept: str = "application/fhir+json",  # FIXED: Always use FHIR+JSON
                  content_type: Optional[str] = None,
                  timeout: int = DEFAULT_TIMEOUT,
                  params: Optional[Dict[str, Any]] = None) -> requests.Response:
@@ -104,7 +102,7 @@ def fhir_request(method: str, url: str, token: Optional[str], *,
     headers = hdrs(accept=accept, content_type=content_type, token=token)
 
     if LOG_LEVEL in ("DEBUG", "TRACE"):
-        # Show what we’re about to send
+        # Show what we're about to send
         qp = ""
         if params:
             try:
@@ -128,7 +126,6 @@ def fhir_request(method: str, url: str, token: Optional[str], *,
     if LOG_LEVEL in ("DEBUG", "TRACE"):
         log.debug("IN<- %s %s  content-type=%s", resp.status_code, url, resp.headers.get("content-type"))
         # Try JSON first, then bytes
-        b = None
         try:
             j = resp.json()
             log.debug("IN<- json keys: %s", list(j.keys())[:12])
@@ -141,7 +138,6 @@ def fhir_request(method: str, url: str, token: Optional[str], *,
                 log.debug("IN<- body (snip):\n%s", _snip(b))
     return resp
 
-
 def is_success(resp: requests.Response) -> bool:
     return 200 <= resp.status_code < 300
 
@@ -150,7 +146,6 @@ def safe_json(resp: requests.Response) -> Optional[Dict[str, Any]]:
         return resp.json()
     except Exception:
         return None
-
 
 def _snip(b: bytes, limit: int = LOG_BODY_LIMIT) -> str:
     try:
@@ -164,14 +159,14 @@ def _snip(b: bytes, limit: int = LOG_BODY_LIMIT) -> str:
 def _ctype_is_json(ctype: str) -> bool:
     return (ctype or "").lower().startswith("application/json") or "fhir+json" in (ctype or "").lower()
 
-
 # Posting order helps with dependencies
 UPLOAD_ORDER = ["CodeSystem", "ValueSet", "StructureDefinition", "ConceptMap", "StructureMap"]
 
 # ---------- Models ----------
-class UploadIGSimpleBody(BaseModel):
-    """Body for /upload_ig endpoints: just the IG URL (base or direct package.tgz)."""
+class UploadIGRequest(BaseModel):
+    """Body for /upload_ig endpoints: IG URL and optional target."""
     ig_url: str = Field(..., description="IG base URL or direct URL to `package.tgz`.", example="https://example.org/ig")
+    target: Optional[str] = Field(None, description="Target server: 'fhir', 'matchbox', or custom. Defaults to 'fhir'.")
 
 class ValidateRequest(BaseModel):
     """Validate a resource against a profile using FHIR `$validate`."""
@@ -280,7 +275,7 @@ def post_json_resource(host: str, token: Optional[str], res_json: Dict[str, Any]
     rt = res_json.get("resourceType")
     url = host.rstrip("/") + f"/{rt}"
     ct = f"application/fhir+json;fhirVersion={fhir_version_suffix}"
-    resp = fhir_request("POST", url, token, json_body=res_json, content_type=ct)
+    resp = fhir_request("POST", url, token, json_body=res_json, content_type=ct, accept="application/fhir+json")
     ok = is_success(resp)
     body = safe_json(resp) or {"text": resp.text[:2000]}
     report = {
@@ -305,9 +300,12 @@ def post_map_text(host: str, token: Optional[str], text: str) -> Tuple[bool, Dic
 
 def fhir_validate(host: str, token: Optional[str], resource: Dict[str, Any], profile_url: str,
                   include_warnings: bool = False) -> Dict[str, Any]:
-    url = host.rstrip("/") + "/$validate"
+    # Get resource type for resource-specific validation endpoint
+    resource_type = resource.get("resourceType", "Resource")
+    url = host.rstrip("/") + f"/{resource_type}/$validate"
+    
     resp = fhir_request("POST", url, token, json_body=resource,
-                        content_type="application/fhir+json", accept="application/json",
+                        content_type="application/fhir+json", accept="application/fhir+json",  # FIXED: use fhir+json
                         params={"profile": profile_url})
     body = safe_json(resp) or {"text": resp.text[:2000]}
     issues: List[Dict[str, Any]] = []
@@ -332,7 +330,7 @@ def fhir_validate_raw(host: str, token: Optional[str], body_bytes: bytes,
                       content_type: str, profile_url: str):
     url = host.rstrip("/") + "/$validate"
     return fhir_request("POST", url, token, data=body_bytes, content_type=content_type,
-                        accept="application/json", params={"profile": profile_url})
+                        accept="application/fhir+json", params={"profile": profile_url})  # FIXED: use fhir+json
 
 def _upload_ig_core(ig_url: str, host: str, token: Optional[str]):
     # 1) Download package.tgz
@@ -381,49 +379,6 @@ def _upload_ig_core(ig_url: str, host: str, token: Optional[str]):
         "results": results,
     }
 
-
-def _upload_ig_core_bytes(pkg_bytes: bytes, host: str, token: Optional[str]):
-    # 1) Extract & classify
-    by_type = {t: [] for t in UPLOAD_ORDER}
-    skipped: List[str] = []
-    errors: List[Dict[str, Any]] = []
-    results: List[Dict[str, Any]] = []
-
-    for path, data in iter_package_files(pkg_bytes):
-        rt, payload, fmt = classify_file(path, data)
-        if not rt:
-            skipped.append(path)
-            continue
-        by_type[rt].append((path, payload, fmt))
-
-    # 2) Upload in order
-    for rt in UPLOAD_ORDER:
-        for path, payload, fmt in by_type[rt]:
-            if fmt == "json":
-                ok, rep = post_json_resource(host, token, payload)
-            elif fmt == "map":
-                ok, rep = post_map_text(host, token, payload)
-            else:
-                ok, rep = False, {"status": 0, "ok": False, "error": "Unknown format"}
-            rep["sourcePath"] = path
-            rep["type"] = rt
-            results.append(rep)
-            if not ok:
-                errors.append(rep)
-
-    # 3) Summary
-    return {
-        "summary": {
-            "host": host,
-            "counts": {t: len(by_type[t]) for t in UPLOAD_ORDER},
-            "uploaded": sum(1 for r in results if r.get("ok")),
-            "failed": len(errors),
-            "skippedFiles": skipped,
-        },
-        "results": results,
-    }
-
-
 def auth_token_from_header(authorization: Optional[str]) -> Optional[str]:
     """
     Accepts 'Authorization: Bearer <token>' or any value.
@@ -435,6 +390,23 @@ def auth_token_from_header(authorization: Optional[str]) -> Optional[str]:
     if len(parts) == 2 and parts[0].lower() == "bearer":
         return parts[1]
     return authorization
+
+# ---------- Middleware ----------
+@app.middleware("http")
+async def _log_incoming(request: Request, call_next):
+    if LOG_LEVEL in ("DEBUG", "TRACE"):
+        try:
+            body = await request.body()
+        except Exception:
+            body = b""
+        log.debug(
+            "IN %s %s  content-type=%s  len=%s",
+            request.method, request.url.path + ("?" + request.url.query if request.url.query else ""),
+            request.headers.get("content-type"), len(body),
+        )
+        if body:
+            log.debug("IN body (snip):\n%s", _snip(body))
+    return await call_next(request)
 
 # ---------- Homepage ----------
 @app.get("/", include_in_schema=False)
@@ -485,28 +457,28 @@ def home() -> HTMLResponse:
     </thead>
     <tbody>
       <tr>
+        <td><code>/upload_ig/{target}</code></td>
+        <td>POST</td>
+        <td>Download IG <code>package.tgz</code>, extract <em>CodeSystem → ValueSet → StructureDefinition → ConceptMap → StructureMap</em>, upload in order</td>
+        <td>Path-based target (e.g. <code>/upload_ig/matchbox</code>)</td>
+      </tr>
+      <tr>
         <td><code>/upload_ig</code></td>
         <td>POST</td>
         <td>Download IG <code>package.tgz</code>, extract <em>CodeSystem → ValueSet → StructureDefinition → ConceptMap → StructureMap</em>, upload in order</td>
-        <td>Default FHIR server (<code>FHIR_HOST</code>)</td>
-      </tr>
-      <tr>
-        <td><code>/{'{'}target{'}'}/upload_ig</code> or <code>/upload_ig/{'{'}target{'}'}</code></td>
-        <td>POST</td>
-        <td>Same as above but send to a specific target (e.g. <code>matchbox</code>, <code>fhir</code>, or any <code>NAME_HOST</code>)</td>
-        <td>Chosen target</td>
+        <td>Direct URL (host field) or alias (target field) in JSON body</td>
       </tr>
       <tr>
         <td><code>/validate</code></td>
         <td>POST</td>
         <td>FHIR-native <code>$validate</code> against a profile; returns parsed OperationOutcome</td>
-        <td>Default FHIR server (overridable)</td>
+        <td>Default FHIR server (overridable in JSON body)</td>
       </tr>
       <tr>
         <td><code>/structuremap/text</code></td>
         <td>POST</td>
         <td>Upload Mapping Language <code>.map</code> text; returns the JSON <code>StructureMap</code></td>
-        <td>Default FHIR server (overridable)</td>
+        <td>Default FHIR server (overridable in JSON body)</td>
       </tr>
       <tr>
         <td><code>/transform</code></td>
@@ -518,6 +490,12 @@ def home() -> HTMLResponse:
         <td><code>/extract</code></td>
         <td>POST</td>
         <td>Utility: extract nested content by key path from an envelope JSON</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><code>/echo</code></td>
+        <td>POST</td>
+        <td>Echo back headers and body for debugging ITB requests</td>
         <td>—</td>
       </tr>
       <tr>
@@ -541,55 +519,38 @@ def home() -> HTMLResponse:
 """
     return HTMLResponse(html)
 
-
-
-@app.middleware("http")
-async def _log_incoming(request: Request, call_next):
-    if LOG_LEVEL in ("DEBUG", "TRACE"):
-        try:
-            body = await request.body()
-        except Exception:
-            body = b""
-        log.debug(
-            "IN %s %s  content-type=%s  len=%s",
-            request.method, request.url.path + ("?" + request.url.query if request.url.query else ""),
-            request.headers.get("content-type"), len(body),
-        )
-        if body:
-            log.debug("IN body (snip):\n%s", _snip(body))
-    return await call_next(request)
-
-
 # ---------- Endpoints ----------
 @app.get("/health", tags=["Utils"], summary="Liveness probe")
 def health():
     """Return a simple liveness payload and the configured default FHIR host."""
     return {"status": "ok", "hostDefault": DEFAULT_FHIR_HOST}
 
-import logging
-
 @app.post("/echo", tags=["Utils"], summary="Echo back headers and body")
 async def echo_endpoint(request: Request):
     """Echo back headers and body exactly as received (for debugging ITB requests)."""
     body = await request.body()
     try:
-        parsed = json.loads(body)
+        parsed = json.loads(body) if body else None
     except Exception:
         parsed = None
 
     # Log to console
-    logging.info("=== /echo called ===")
-    logging.info("Headers: %s", dict(request.headers))
-    logging.info("Raw body: %s", body.decode("utf-8", errors="replace"))
+    log.info("=== /echo called ===")
+    log.info("Headers: %s", dict(request.headers))
+    log.info("Raw body: %s", body.decode("utf-8", errors="replace"))
     if parsed is not None:
-        logging.info("Parsed JSON: %s", json.dumps(parsed, indent=2))
+        log.info("Parsed JSON: %s", json.dumps(parsed, indent=2))
     else:
-        logging.info("Body could not be parsed as JSON")
+        log.info("Body could not be parsed as JSON")
 
     return {
+        "method": request.method,
+        "url": str(request.url),
         "headers": dict(request.headers),
         "raw_body": body.decode("utf-8", errors="replace"),
-        "json_body": parsed
+        "json_body": parsed,
+        "content_length": len(body),
+        "is_valid_json": parsed is not None
     }
 
 @app.get("/targets", tags=["Utils"], summary="List available upload targets")
@@ -611,73 +572,23 @@ def list_targets():
 @app.post(
     "/upload_ig",
     tags=["IG"],
-    summary="Install a FHIR IG package by URL (default host)",
+    summary="Install a FHIR IG package by URL (JSON body only)",
 )
-def upload_ig_default(
-    target: str,
-    req: Optional[UploadIGSimpleBody] = Body(None, description="IG location (if sent in JSON body)"),
-    ig_url: Optional[str] = Query(None, description="IG URL (if passed as query param)"),
+def upload_ig(
+    req: UploadIGRequest,
     authorization: Optional[str] = Header(None, description="Bearer token forwarded to the FHIR server"),
 ):
     """
     Downloads `package.tgz`, extracts CodeSystem/ValueSet/StructureDefinition/ConceptMap/StructureMap,
-    uploads them to the **default** FHIR host (`FHIR_HOST`), and returns a per-file report.
+    uploads them to the specified target (default: 'fhir'), and returns a per-file report.
+    
+    **Body**: JSON with `ig_url` and optional `target`
+    **Example**: `{"ig_url": "https://example.org/ig", "target": "matchbox"}`
     """
-    url = ig_url or (req.ig_url if req else None)
-    if not url:
-        raise HTTPException(status_code=400, detail="Missing ig_url (send in JSON body or as query param)")
+    target = req.target or "fhir"
     host = resolve_target_host(target).rstrip("/")
     token = auth_token_from_header(authorization) or DEFAULT_FHIR_TOKEN
-    return _upload_ig_core(url, host, token)
-
-# Support both styles: "/{target}/upload_ig" and "/upload_ig/{target}"
-@app.post(
-    "/{target}/upload_ig",
-    tags=["IG"],
-    summary="Install a FHIR IG package by URL (choose host by target name)",
-)
-
-
-@app.post(
-    "/upload_ig/{target}",
-    tags=["IG"],
-    summary="Install a FHIR IG package by URL or by uploading package.tgz (multipart)",
-)
-async def upload_ig_target(
-    target: str,
-    ig_url_q: Optional[str] = Query(None, alias="ig_url", description="IG base URL or direct package.tgz URL"),
-    ig_url_f: Optional[str] = Form(None, description="IG base URL or direct package.tgz URL (multipart form)"),
-    package: Optional[UploadFile] = File(None, description="Uploaded package.tgz (multipart form)"),
-    body: Optional[dict] = Body(None),
-    authorization: Optional[str] = Header(None, description="Bearer token forwarded to the FHIR server"),
-):
-    """
-    Accepts **either**:
-    - `package` file (multipart/form-data) → upload its contents
-    - `ig_url` via query or multipart form → server downloads `/package.tgz`
-    - JSON body `{ "ig_url": "..." }` (fallback)
-
-    Upload order: CodeSystem → ValueSet → StructureDefinition → ConceptMap → StructureMap
-    """
-    host = resolve_target_host(target).rstrip("/")
-    token = auth_token_from_header(authorization) or DEFAULT_FHIR_TOKEN
-
-    # Prefer an uploaded package file if provided
-    if package is not None:
-        data = await package.read()
-        if not data:
-            raise HTTPException(status_code=400, detail="Uploaded 'package' file is empty.")
-        return _upload_ig_core_bytes(data, host, token)
-
-    # Otherwise, resolve ig_url from query, form, or JSON
-    ig_url = ig_url_q or ig_url_f or (body.get("ig_url") if isinstance(body, dict) else None)
-    if not ig_url:
-        raise HTTPException(
-            status_code=422,
-            detail="Provide 'ig_url' as query (?ig_url=...), multipart form field (ig_url), or JSON body {'ig_url':'...'}, or upload 'package' (multipart).",
-        )
-
-    return _upload_ig_core(ig_url, host, token)
+    return _upload_ig_core(req.ig_url, host, token)
 
 @app.post(
     "/validate",
@@ -701,9 +612,7 @@ def validate(req: ValidateRequest):
     tags=["StructureMap"],
     summary="Create a StructureMap from FHIR Mapping Language text",
 )
-def structuremap_from_text(
-    req: StructureMapTextRequest = Body(..., description="FHIR Mapping Language text; returns JSON StructureMap."),
-):
+def structuremap_from_text(req: StructureMapTextRequest):
     """Posts `.map` text to `/StructureMap` and returns the FHIR server's JSON StructureMap (or OperationOutcome)."""
     host = (req.host or DEFAULT_FHIR_HOST).rstrip("/")
     token = req.token or DEFAULT_FHIR_TOKEN
@@ -751,7 +660,7 @@ async def transform_simple(
             "receivedContentType": ctype_in
         })
 
-    # 1) Transform
+    # 1) Transform - using proper FHIR headers
     resp = fhir_transform_raw(host, token, source, body, ctype_in)
     ok = is_success(resp)
 
@@ -812,17 +721,6 @@ async def transform_simple(
             "params": {"source": source},
         }
     return out
-
-
-@app.post("/debug/echo", include_in_schema=False)
-async def debug_echo(request: Request):
-    body = await request.body()
-    return {
-        "receivedContentType": request.headers.get("content-type"),
-        "receivedLength": len(body),
-        "bodySnip": _snip(body),
-        "asText": body.decode("utf-8", errors="replace")[:LOG_BODY_LIMIT],
-    }
 
 @app.post(
     "/extract",
