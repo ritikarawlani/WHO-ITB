@@ -240,7 +240,7 @@
 		<process handler="JsonPointerProcessor" operation="process" output="firstResource">
 			<input name="content">$fhirResource</input>
 			<!-- This is your array string -->
-			<input name="pointer">"/0"</input>
+			<input name="pointer">"/0/resource"</input>
 		</process>
 
 <!-- Use internal HAPI server to validate Bundle -->
