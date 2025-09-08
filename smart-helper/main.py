@@ -593,13 +593,45 @@ def upload_ig(
 @app.post(
     "/validate",
     tags=["Validation"],
-    summary="Validate a resource against a profile ($validate)",
-    response_model=ValidateResponse,
+    summary="Validate a resource against a profile ($validate) - raw FHIR server response",
 )
-def validate(req: ValidateRequest):
+def validate_raw(req: ValidateRequest):
     """
     Validate a FHIR resource against a given profile using `$validate`.
+    Returns the exact response from the FHIR server without any processing.
+    """
+    host = (req.host or DEFAULT_FHIR_HOST).rstrip("/")
+    token = req.token or DEFAULT_FHIR_TOKEN
+    
+    try:
+        # Get resource type for resource-specific validation endpoint
+        resource_type = req.resource.get("resourceType", "Resource")
+        url = host.rstrip("/") + f"/{resource_type}/$validate"
+        
+        resp = fhir_request("POST", url, token, json_body=req.resource,
+                            content_type="application/fhir+json", accept="application/fhir+json",
+                            params={"profile": req.profile_url})
+        
+        # Return exactly what the FHIR server returned
+        try:
+            return resp.json()
+        except Exception:
+            # If not JSON, return as text
+            return {"text": resp.text, "status": resp.status_code}
+            
+    except Exception as e:
+        # Only handle connection/server errors
+        raise HTTPException(status_code=502, detail=f"FHIR server error: {str(e)}")
 
+@app.post(
+    "/validate_parse",
+    tags=["Validation"],
+    summary="Validate a resource against a profile ($validate) - parsed response",
+    response_model=ValidateResponse,
+)
+def validate_parsed(req: ValidateRequest):
+    """
+    Validate a FHIR resource against a given profile using `$validate`.
     Returns parsed OperationOutcome issues (fatal/error by default; set `include_warnings=true` to include more).
     """
     host = (req.host or DEFAULT_FHIR_HOST).rstrip("/")
@@ -607,6 +639,7 @@ def validate(req: ValidateRequest):
     report = fhir_validate(host, token, req.resource, req.profile_url, include_warnings=req.include_warnings)
     return report
 
+    
 @app.post(
     "/structuremap/text",
     tags=["StructureMap"],
