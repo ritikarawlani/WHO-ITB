@@ -31,20 +31,30 @@
 	<steps>
 
 
-<!-- ===================== 1) Decode QRCode ===================== -->    
-<!-- 1.1: Request the user to upload a file -->
+
+	<!-- 0.1: Request the user to upload a file -->
 		<interact id="userFileUpload" desc="Upload file">
-			<request desc="File to upload:" name="uploadedFile" inputType="UPLOAD" required="true"/>
+			<request desc="Upload a QRCode:" name="uploadedFile" inputType="UPLOAD" required="true"/>
 		</interact>
-		<!-- Step 2: Decode QR Code -->
-<!-- 1.2 Build multipart parts list: a single file part named 'image' -->
+
+	<!-- 0.2. Ask the user for the PIN -->
+		<assign to="pinValue">""</assign>
+		<interact id="enterPin" inputTitle="Authorize link" desc="Enter the PIN provided by the service">
+			<request desc="Enter PIN:">$pinValue</request>
+		</interact>		
+
+
+
+<!-- ===================== 1) Decode QRCode ===================== -->    
+
+<!-- 1.1 Build multipart parts list: a single file part named 'image' -->
 		<assign to="imgPart{name}">"image"</assign>
 		<assign to="imgPart{contentType}">"image/png"</assign>
 		<assign to="imgPart{fileName}">"upload.png"</assign>
 		<assign to="imgPart{content}">$userFileUpload{uploadedFile}</assign>
 		<assign to="sendParts" append="true">$imgPart</assign>
 		<assign to="reqHeaders{Accept}">"application/json"</assign>
-<!-- 1.3 POST to http://hcert-validator:8080/decode/image with parts -->
+<!-- 1.2 POST to http://hcert-validator:8080/decode/image with parts -->
 		<send id="img_to_content" desc="Decode QR image" handler="HttpMessagingV2" from="User" to="HCertDecoder" >
 			<input name="uri">"http://hcert-validator:8080/decode/image"</input>
 			<input name="method">"POST"</input>
@@ -161,11 +171,7 @@
 			<!-- or $extractReference{response}{body} -->
 			<input name="pointer">"/url"</input>
 		</process>
-<!-- Ask the user for the PIN -->
-		<assign to="pinValue">""</assign>
-		<interact id="enterPin" inputTitle="Authorize link" desc="Enter the PIN provided by the service">
-			<request desc="Enter a text value:">$pinValue</request>
-		</interact>
+
 		<!-- <log>$pinValue</log><log>$refUrl</log> -->
 <!-- 4) Build the JSON body (url and pin are strings)-->
 		<assign to="tpl3{url}">$refUrl</assign>
