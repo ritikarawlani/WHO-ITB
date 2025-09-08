@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite id="ts-002" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<testsuite id="test-suite-who-racsel" xmlns="http://www.gitb.com/tdl/v1/" xmlns:gitb="http://www.gitb.com/core/v1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<!--
 		This is the test suite's entry point file as it points to the test cases which in turn point to other scriptlets and resources. In general there is
 		no requirement on the structure of a test suite but it is a good practice to keep things organised with a consistent structure that makes sense to you
@@ -13,8 +13,8 @@
 	<actors>
         <!-- Define which test suite actor is the System Under Test (SUT). -->
         <gitb:actor id="User">
-			<gitb:name>User</gitb:name>
-			<gitb:desc>User..</gitb:desc>
+			<gitb:name>GDHCN Consumer</gitb:name>
+			<gitb:desc>The GDHCN consumer is expected to be able to submit information by a participant and retrieve the information to present to the professional.</gitb:desc>
 		</gitb:actor>
 
 
@@ -47,7 +47,7 @@
 		Note that as part of the same test suite you can have test cases for different SUT actors. In our case we have a single test suite with test cases both for 
 		the FHIR client and FHIR server roles. Alternatively these could of course be split into separate test suites but that is not necessary.
 	-->	
-	<testcase id="test-case"/>
-	<testcase id="icvp-test-case"/>
+	<testcase id="test-case-gdhcn"/>
+	<testcase id="test-case-icvp"/>
 
 </testsuite>
