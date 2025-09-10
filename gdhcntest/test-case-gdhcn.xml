@@ -38,10 +38,11 @@
 		</interact>
 
 	<!-- 0.2. Ask the user for the PIN -->
-		<assign to="pinValue">""</assign>
-		<interact id="enterPin" inputTitle="Authorize link" desc="Enter the PIN provided by the service">
+		<assign to="pinValue">"1234"</assign>
+	<!-- Don't ask for input given Gazelle limitations-->
+		<!-- <interact id="enterPin" inputTitle="Authorize link" desc="Enter the PIN provided by the service">
 			<request desc="Enter PIN:">$pinValue</request>
-		</interact>		
+		</interact>		 -->
 
 
 
